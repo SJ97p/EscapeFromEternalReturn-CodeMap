@@ -13,7 +13,7 @@
 - [Item Container Transaction](systems/item-container-transaction.md)
 - [Storage Persistence](systems/storage-persistence.md)
 - [RegionGraph Zone Culling](systems/zone-culling.md)
-- [Restricted Zone Extension API](systems/restricted-zone-api.md)
+- [Zone State API / Collaboration Extension](systems/zone-state-api.md)
 
 ## Classes
 

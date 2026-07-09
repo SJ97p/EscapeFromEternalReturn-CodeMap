@@ -10,7 +10,7 @@
 - `PlayerRegionTracker.OnRegionChanged`를 받아 활성 지역 갱신
 - `RegionGraph`를 통해 현재 지역의 인접 지역 계산
 - 이전 활성 지역과 다음 활성 지역의 차집합만 토글
-- Zone 상태 변경 API와 이벤트 제공
+- 금지구역, 하이퍼루프, 지역 이벤트 같은 협업 기능이 붙을 수 있는 Zone 상태 API와 이벤트 제공
 
 ## Source
 
@@ -19,5 +19,4 @@
 ## Related
 
 - [RegionGraph Zone Culling](../systems/zone-culling.md)
-- [Restricted Zone Extension API](../systems/restricted-zone-api.md)
-
+- [Zone State API / Collaboration Extension](../systems/zone-state-api.md)

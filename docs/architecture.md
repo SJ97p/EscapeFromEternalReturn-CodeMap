@@ -26,7 +26,7 @@ flowchart TD
     RegionTracker[PlayerRegionTracker] --> ZoneController
     RegionGraph[RegionGraph] --> ZoneController
     ZoneController --> ActiveZones[Current + Adjacent Zones]
-    ZoneController --> ZoneState[Restricted Zone API]
+    ZoneController --> ZoneState[Zone State API]
 ```
 
 ## Presentation Flow
@@ -38,6 +38,7 @@ flowchart TD
 5. `UIItemMoveManager`가 이동, 병합, 스왑, 자동 이동, 장비 슬롯 검증을 트랜잭션처럼 처리합니다.
 6. 저장 시점에는 런타임 슬롯 모델을 `StorageData` DTO로 변환해 SQLite에 저장합니다.
 7. 월드는 `RegionGraph`와 `ZoneController`를 통해 현재 지역과 인접 지역만 활성화합니다.
+8. 금지구역, 하이퍼루프, 지역 이벤트 같은 협업 기능은 Zone 내부 구현이 아니라 Region/Zone 상태 API를 통해 연결될 수 있게 했습니다.
 
 ## Design Intent
 
@@ -45,6 +46,7 @@ flowchart TD
 - 데이터 흐름 안정화: 이동 검증 후 커밋하고 실패 시 롤백하는 방식으로 아이템 복사/증발 방지
 - 데이터 기반 확장: 제작 레시피와 지역 그래프를 데이터로 관리해 코드 수정 없이 확장 가능
 - 런타임 최적화: 필요한 Zone만 활성화하고 저장 데이터는 비어있지 않은 슬롯만 추출
+- 협업 확장성: 다른 팀원이 만든 지역 기반 기능이 `Region`, `ZoneState`, `ZoneController` API를 통해 붙을 수 있도록 경계 제공
 
 ## Measured Optimization
 

@@ -18,14 +18,14 @@ const nodes = {
       item["Item Container Transaction"]
       persistence["SQLite Storage Persistence"]
       zone["RegionGraph Zone Culling"]
-      restricted["Restricted Zone API"]
+      zoneapi["Zone State API"]
 
       scene --> ui
       ui --> crafting
       ui --> item
       crafting --> item
       item --> persistence
-      zone --> restricted
+      zone --> zoneapi
       zone --> item
 
       click scene call selectNode("scene-ui-lifecycle")
@@ -34,7 +34,7 @@ const nodes = {
       click item call selectNode("item-container-transaction")
       click persistence call selectNode("storage-persistence")
       click zone call selectNode("zone-culling")
-      click restricted call selectNode("restricted-zone-api")`,
+      click zoneapi call selectNode("zone-state-api")`,
   },
   "scene-ui-lifecycle": {
     kind: "System",
@@ -172,25 +172,25 @@ const nodes = {
       click controller call selectNode("ZoneController")
       click graph call selectNode("RegionGraph")`,
   },
-  "restricted-zone-api": {
+  "zone-state-api": {
     kind: "System",
-    title: "Restricted Zone Extension API",
+    title: "Zone State API / Collaboration Extension",
     summary:
-      "금지구역 시스템이 Zone 내부 구현을 직접 알지 않고 Region과 ZoneState API만으로 연결되도록 확장 지점을 분리했습니다.",
+      "금지구역, 하이퍼루프, 지역 이벤트 같은 협업 기능이 Zone 내부 구현을 직접 알지 않고 Region과 ZoneState API로 연결되도록 확장 지점을 분리했습니다.",
     problem:
-      "금지구역 로직이 Zone 내부 오브젝트나 UI를 직접 조작하면 협업 중 변경 비용이 커집니다.",
+      "지역 기반 기능이 Zone 내부 오브젝트나 스폰 구현을 직접 조작하면 협업 중 변경 비용이 커집니다.",
     solution:
       "ZoneController의 SetZoneState, SetZonesState, OnZoneStateChanged를 통해 외부 시스템은 상태 API만 사용하도록 분리했습니다.",
-    doc: "docs/systems/restricted-zone-api.md",
+    doc: "docs/systems/zone-state-api.md",
     classes: ["ZoneController", "Zone", "RegionGraph"],
     graph: `flowchart TD
-      restricted["Restricted Zone Rule"]
+      external["External Region Feature"]
       api["ZoneController API"]
       zone["Zone.SetZoneState"]
       event["OnZoneStateChanged"]
       ui["UI / Damage / Event Extensions"]
 
-      restricted --> api --> zone
+      external --> api --> zone
       api --> event --> ui
 
       click api call selectNode("ZoneController")`,
@@ -205,7 +205,7 @@ const nodes = {
   UIItemMoveManager: classNode("UIItemMoveManager", "컨테이너 간 이동, 병합, 스왑, 자동 이동, 장비 검증을 중앙에서 처리합니다.", "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/UIItemMoveManager.cs", ["Item Container Transaction"]),
   Storage: classNode("Storage", "인벤토리, 창고, 장비창, 루팅창이 공유하는 런타임 슬롯 데이터 모델입니다.", "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/Storage.cs", ["Item Transaction", "Persistence"]),
   StorageRepository: classNode("StorageRepository", "StorageData와 SQLite row 사이를 매핑하는 Repository입니다.", "src/Assets/00_Scripts/DataBase/StorageRepository.cs", ["Storage Persistence"]),
-  ZoneController: classNode("ZoneController", "현재 지역과 인접 지역만 활성화하고 Zone 상태 API를 제공하는 컨트롤러입니다.", "src/Assets/00_Scripts/ZoneControllers/ZoneController.cs", ["Zone Culling", "Restricted Zone API"]),
+  ZoneController: classNode("ZoneController", "현재 지역과 인접 지역만 활성화하고 협업 기능을 위한 Zone 상태 API를 제공하는 컨트롤러입니다.", "src/Assets/00_Scripts/ZoneControllers/ZoneController.cs", ["Zone Culling", "Zone State API"]),
   RegionGraph: classNode("RegionGraph", "지역과 인접 지역 관계를 데이터로 표현해 Zone Culling의 기준을 제공합니다.", "src/Assets/00_Scripts/ZoneControllers/RegionGraph.cs", ["Zone Culling"]),
   InventoryContainerAdapter: classNode("InventoryContainerAdapter", "인벤토리 HUD와 Storage 모델을 IItemContainer로 연결하는 Adapter입니다.", "src/Assets/00_Scripts/Inventory_Scripts/InventoryLogic/InventoryContainerAdapter.cs", ["Adapter Pattern"]),
   StorageContainerAdapter: classNode("StorageContainerAdapter", "창고 패널과 Storage 모델을 IItemContainer로 연결하는 Adapter입니다.", "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/StorageContainerAdapter.cs", ["Adapter Pattern"]),
@@ -239,7 +239,7 @@ const treeGroups = [
       ["item-container-transaction", "Item Transaction"],
       ["storage-persistence", "Storage Persistence"],
       ["zone-culling", "Zone Culling"],
-      ["restricted-zone-api", "Restricted Zone API"],
+      ["zone-state-api", "Zone State API"],
     ],
   },
   {
