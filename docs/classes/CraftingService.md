@@ -2,21 +2,37 @@
 
 ## Role
 
-제작 가능 여부 판단, 부족 재료 계산, 실제 제작 처리를 담당하는 서비스 클래스입니다.
+제작 가능 여부 판단, 부족 재료 계산, 실제 제작 처리를 담당합니다.
 
-## Responsibilities
+## Class Diagram
 
-- 제작 트리에서 직접 필요 재료 수집
-- 보유 재료와 필요 재료 비교
-- 부족 재료 계산
-- 제작 시 재료 제거 후 결과 아이템 추가
-- UI와 제작 실행 로직 분리
+```mermaid
+classDiagram
+    class CraftingService {
+        -CraftingStorageAdapter storageAdapter
+        +CraftingService(CraftingStorageAdapter storageAdapter)
+        +bool CanCraft(CraftTreeNode rootNode)
+        +bool TryCraft(CraftTreeNode rootNode)
+        -void CollectDirectRequirements(CraftTreeNode rootNode, Dictionary~int, int~ result)
+        -void AddRequirement(CraftTreeNode node, Dictionary~int, int~ result)
+        +Dictionary~int, int~ GetRequiredItems(CraftTreeNode rootNode)
+        +Dictionary~int, int~ GetMissingItems(CraftTreeNode rootNode)
+        +int GetTotalItemCount(int itemId)
+    }
+
+    class CraftingStorageAdapter {
+        +int GetTotalItemCount(int itemId)
+        +bool HasItem(int itemId, int amount)
+        +bool RemoveItem(int itemId, int amount)
+        +bool AddItem(int itemId, int amount)
+    }
+
+    class CraftTreeNode
+
+    CraftingService --> CraftingStorageAdapter
+    CraftingService --> CraftTreeNode
+```
 
 ## Source
 
 - [CraftingService.cs](../../src/Assets/00_Scripts/Craft/CraftingService.cs)
-
-## Related
-
-- [Recursive Crafting Tree](../systems/recursive-crafting-tree.md)
-
