@@ -1,14 +1,14 @@
 const repoBase = "https://github.com/sj97p/EscapeFromEternalReturn-CodeMap/blob/main/";
 
 const nodes = {
-  overview: systemNode({
+  overview: system({
     title: "런타임 시스템 구조",
     summary:
       "씬, UI, 제작, 아이템 컨테이너, 저장/로드, 지역 최적화를 공통 규격과 데이터 흐름으로 연결한 런타임 아키텍처입니다.",
     problem:
-      "각 기능을 화면이나 씬마다 따로 구현하면 아이템 이동 규칙, UI 호출, 저장 데이터, 지역 상태가 서로 강하게 얽혀 유지보수가 어려워집니다.",
+      "기능을 화면이나 씬마다 따로 구현하면 UI 호출, 아이템 이동 규칙, 저장 데이터, 지역 상태가 강하게 얽혀 유지보수가 어려워집니다.",
     solution:
-      "SceneController, UIPanel Registry, IItemContainer Adapter, UIItemMoveManager, StorageRepository, RegionGraph/ZoneController로 책임 경계를 만들었습니다.",
+      "SceneController, UIPanel Registry, IItemContainer Adapter, StorageRepository, RegionGraph/ZoneController로 책임 경계를 나누었습니다.",
     classes: [
       "SceneController",
       "GameSceneManager",
@@ -46,12 +46,12 @@ const nodes = {
       click zoneapi call selectNode("zone-state-api")`,
   }),
 
-  "scene-ui-lifecycle": systemNode({
+  "scene-ui-lifecycle": system({
     title: "Scene Lifecycle & UI Registry",
     summary:
-      "모든 씬은 공통 SceneController 라이프사이클을 따르고, UI 패널은 UIPanelId 기반 레지스트리로 등록/조회/제어됩니다.",
+      "모든 씬은 SceneController 라이프사이클을 따르고, UI 패널은 UIPanelId 기반 레지스트리로 등록/조회/제어됩니다.",
     problem:
-      "씬마다 전환 로직과 UI 참조를 직접 들고 있으면 씬 추가나 패널 교체 때 호출 구조가 쉽게 무너집니다.",
+      "씬 전환과 UI 참조를 각 씬에서 직접 관리하면 씬 추가, 패널 교체, 호출 방식 변경 때 수정 범위가 커집니다.",
     solution:
       "GameSceneManager가 씬 전환과 컨텍스트 전달을 맡고, NewUIManager가 UIPanelId 기반 Open/Close/Toggle을 제공합니다.",
     doc: "docs/systems/scene-ui-lifecycle.md",
@@ -78,14 +78,14 @@ const nodes = {
       click button call selectNode("UIPanelButton")`,
   }),
 
-  "recursive-crafting-tree": systemNode({
+  "recursive-crafting-tree": system({
     title: "Recursive Crafting Tree",
     summary:
-      "재료가 다시 제작 아이템일 수 있는 다단계 조합식을 레시피 DB 기반 재귀 트리로 생성하고 런타임 UI로 렌더링합니다.",
+      "재료가 다시 제작 아이템일 수 있는 다단계 조합식을 레시피 데이터 기반 재귀 트리로 생성하고 런타임 UI로 렌더링합니다.",
     problem:
-      "레시피가 깊어질수록 UI에서 직접 하위 재료를 따라가면 코드가 복잡해지고 데이터 변경에 취약해집니다.",
+      "제작식 깊이가 늘어날수록 UI에서 하위 재료를 직접 따라가면 코드가 복잡해지고 데이터 변경에 취약해집니다.",
     solution:
-      "CraftTreeBuilder가 CraftRecipeDatabase를 재귀 탐색해 CraftTreeNode를 만들고, 렌더러와 서비스가 표시/실행을 분리합니다.",
+      "CraftTreeBuilder가 CraftRecipeDatabase를 재귀 탐색해 CraftTreeNode를 만들고, 렌더러와 서비스가 표시/실행 책임을 나눕니다.",
     doc: "docs/systems/recursive-crafting-tree.md",
     classes: ["CraftTreeBuilder", "CraftTreeNode", "CraftTreeRenderer", "CraftingService", "CraftingStorageAdapter"],
     graph: `flowchart TD
@@ -109,10 +109,10 @@ const nodes = {
       click adapter call selectNode("CraftingStorageAdapter")`,
   }),
 
-  "item-container-transaction": systemNode({
+  "item-container-transaction": system({
     title: "Item Container Transaction",
     summary:
-      "인벤토리, 창고, 장비창, 루팅창을 IItemContainer와 Adapter로 통합하고, UIItemMoveManager가 이동 트랜잭션을 처리합니다.",
+      "인벤토리, 창고, 장비창, 루팅창을 IItemContainer와 Adapter로 통합하고 UIItemMoveManager가 이동 트랜잭션을 처리합니다.",
     problem:
       "창마다 이동 로직을 따로 구현하면 병합, 스왑, 장비 검증, 자동 루팅 규칙이 중복되고 아이템 복사/증발 위험이 커집니다.",
     solution:
@@ -138,110 +138,109 @@ const nodes = {
       move["UIItemMoveManager"]
       validate["Validate / Merge / Swap"]
       commit["Commit or Rollback"]
-      storage["Storage / StorageSlot"]
 
       inv --> iface
       storageAdapter --> iface
       loot --> iface
       equip --> iface
-      ui --> move
-      iface --> move --> validate --> commit --> storage
+      ui --> move --> iface --> validate --> commit
 
       click iface call selectNode("IItemContainer")
       click inv call selectNode("InventoryContainerAdapter")
       click storageAdapter call selectNode("StorageContainerAdapter")
       click loot call selectNode("TargetInventoryContainerAdapter")
       click equip call selectNode("EquipmentAdapter")
-      click move call selectNode("UIItemMoveManager")
-      click storage call selectNode("Storage")`,
+      click move call selectNode("UIItemMoveManager")`,
   }),
 
-  "storage-persistence": systemNode({
+  "storage-persistence": system({
     title: "SQLite Storage Persistence",
     summary:
-      "런타임 Storage 슬롯 데이터를 저장 시점에 StorageData DTO로 변환하고, SQLite Repository를 통해 세이브 슬롯별로 저장/로드합니다.",
+      "런타임 Storage 데이터를 저장 시점에 StorageData로 변환하고 SQLite Repository를 통해 세이브 슬롯별로 저장/로드합니다.",
     problem:
-      "런타임 슬롯 배열을 DB 구조에 직접 묶으면 UI, 게임 로직, 저장 로직이 서로 강하게 결합됩니다.",
+      "런타임 슬롯 객체를 그대로 저장 계층에 넘기면 UI 상태와 DB row 구조가 섞이고 세이브 슬롯 분리가 어려워집니다.",
     solution:
-      "Storage는 런타임 모델만 관리하고, 저장 시 비어있지 않은 슬롯만 StorageData로 추출해 StorageRepository가 SQLite row로 매핑합니다.",
+      "Storage는 런타임 모델로 유지하고, StorageData DTO와 StorageRepository가 DB row 매핑과 세이브 슬롯 단위 조회를 담당합니다.",
     doc: "docs/systems/storage-persistence.md",
     classes: ["Storage", "StorageSlot", "StorageData", "StorageRepository", "StorageItem", "DBLoader", "GameRepositories"],
     graph: `flowchart TD
-      storage["StorageSlot[,]"]
+      runtime["Storage Runtime Slots"]
       export["ExportToStorageData"]
-      dto["StorageData DTO"]
+      dto["StorageData"]
       repo["StorageRepository"]
-      row["StorageItem Row"]
-      loader["DBLoader"]
-      sqlite["SQLite DB"]
+      row["StorageItem SQLite Row"]
+      db["DBLoader"]
+      save["Save Slot"]
 
-      storage --> export --> dto --> repo --> row --> sqlite
-      loader --> repo
+      runtime --> export --> dto --> repo --> row
+      db --> repo
+      save --> repo
 
-      click storage call selectNode("Storage")
+      click runtime call selectNode("Storage")
       click dto call selectNode("StorageData")
       click repo call selectNode("StorageRepository")
       click row call selectNode("StorageItem")
-      click loader call selectNode("DBLoader")`,
+      click db call selectNode("DBLoader")`,
   }),
 
-  "zone-culling": systemNode({
+  "zone-culling": system({
     title: "RegionGraph Zone Culling",
     summary:
       "PlayerRegionTracker가 감지한 현재 Region과 RegionGraph의 인접 Region만 활성화해 보이지 않는 지역의 런타임 부하를 줄입니다.",
     problem:
-      "전체 월드를 항상 활성화하면 플레이어가 보지 않는 지역의 몬스터, 상자, 이벤트까지 Update와 렌더링 비용을 발생시킵니다.",
+      "전체 월드의 지역, 몬스터, 상자 오브젝트를 항상 활성화하면 보이지 않는 영역까지 Update와 렌더링 비용이 발생합니다.",
     solution:
-      "ZoneController가 현재 지역과 인접 지역을 activeRegions로 유지하고, 이전/다음 집합의 차이만 계산해 Zone GameObject를 토글합니다.",
+      "ZoneController가 현재 지역과 인접 지역을 activeRegions로 유지하고 이전/다음 집합의 차이만 계산해 Zone GameObject를 토글합니다.",
     doc: "docs/systems/zone-culling.md",
-    classes: ["PlayerRegionTracker", "RegionGraph", "RegionNodeData", "ZoneController", "RegionZoneEntry", "Zone", "ZoneState"],
+    classes: ["PlayerRegionTracker", "RegionGraph", "RegionNodeData", "RegionZoneEntry", "ZoneController", "Zone", "ZoneState"],
     graph: `flowchart TD
       tracker["PlayerRegionTracker"]
-      graph["RegionGraph / RegionNodeData"]
+      current["Current Region"]
+      graph["RegionGraph"]
+      adjacent["Adjacent Regions"]
       controller["ZoneController"]
-      active["activeRegions"]
-      enable["regionsToEnable"]
-      disable["regionsToDisable"]
-      zone["Zone GameObjects"]
+      active["Active Zone Set"]
+      inactive["Inactive Zones"]
 
-      tracker --> controller
-      graph --> controller --> active
-      active --> enable --> zone
-      active --> disable --> zone
+      tracker --> current --> controller
+      graph --> adjacent --> controller
+      controller --> active
+      controller --> inactive
 
       click tracker call selectNode("PlayerRegionTracker")
       click graph call selectNode("RegionGraph")
       click controller call selectNode("ZoneController")
-      click zone call selectNode("Zone")`,
+      click active call selectNode("Zone")`,
   }),
 
-  "zone-state-api": systemNode({
-    title: "Zone State API / Collaboration Extension",
+  "zone-state-api": system({
+    title: "Zone State API",
     summary:
-      "금지구역, 지역 이벤트, 이동 기능 같은 협업 시스템이 Zone 내부 구현을 직접 알지 않고 Region과 ZoneState API로 연결되도록 확장 지점을 분리했습니다.",
+      "금지구역, 이동, 이벤트 같은 지역 기반 기능이 Zone 내부 구현을 몰라도 상태 API로 연결될 수 있도록 경계를 분리했습니다.",
     problem:
-      "지역 기반 기능이 Zone 내부 오브젝트나 스폰 구현을 직접 조작하면 협업 중 변경 비용이 커지고 책임 경계가 흐려집니다.",
+      "외부 시스템이 Zone GameObject나 최적화 로직에 직접 접근하면 협업 기능이 ZoneController 내부 변경에 쉽게 깨집니다.",
     solution:
-      "ZoneController의 SetZoneState, SetZonesState, OnZoneStateChanged를 통해 외부 시스템은 상태 API만 사용하도록 분리했습니다.",
+      "SetZoneState, SetZonesState, OnZoneStateChanged를 제공해 외부 시스템은 Zone 상태 계약만 사용하게 했습니다.",
     doc: "docs/systems/zone-state-api.md",
     classes: ["ZoneController", "Zone", "ZoneState", "RegionGraph", "PlayerRegionTracker"],
-    graph: `flowchart TD
+    graph: `flowchart LR
       external["External Region Feature"]
-      region["Region"]
       api["ZoneController API"]
-      zone["Zone.SetZoneState"]
+      state["ZoneState"]
+      zone["Zone"]
       event["OnZoneStateChanged"]
-      extensions["UI / Rule / Event Extensions"]
 
-      external --> region --> api --> zone
-      api --> event --> extensions
+      external --> api --> state --> zone
+      api --> event
 
       click api call selectNode("ZoneController")
-      click zone call selectNode("Zone")
-      click event call selectNode("ZoneController")`,
+      click state call selectNode("ZoneState")
+      click zone call selectNode("Zone")`,
   }),
+};
 
-  SceneController: classNode({
+Object.assign(nodes, {
+  SceneController: cls({
     title: "SceneController",
     summary: "모든 씬 컨트롤러가 따르는 공통 라이프사이클 기반 추상 클래스입니다.",
     source: "src/Assets/00_Scripts/Core/SceneController.cs",
@@ -257,8 +256,7 @@ const nodes = {
       }
       SceneController --> SceneEnterContext`,
   }),
-
-  GameSceneManager: classNode({
+  GameSceneManager: cls({
     title: "GameSceneManager",
     summary: "씬 전환과 씬 진입 컨텍스트 전달을 중앙에서 관리합니다.",
     source: "src/Assets/00_Scripts/Core/GameSceneManager.cs",
@@ -272,8 +270,7 @@ const nodes = {
       GameSceneManager --> SceneEnterContext
       GameSceneManager --> SceneController`,
   }),
-
-  SceneEnterContext: classNode({
+  SceneEnterContext: cls({
     title: "SceneEnterContext",
     summary: "씬 전환 시 다음 씬에 전달할 진입 정보를 담는 컨텍스트 객체입니다.",
     source: "src/Assets/00_Scripts/Core/SceneEnterContext.cs",
@@ -287,8 +284,7 @@ const nodes = {
       GameSceneManager --> SceneEnterContext
       SceneController --> SceneEnterContext`,
   }),
-
-  NewUIManager: classNode({
+  NewUIManager: cls({
     title: "NewUIManager",
     summary: "UIPanelId 기반으로 UI 패널을 등록하고 Open/Close/Toggle을 처리하는 레지스트리입니다.",
     source: "src/Assets/00_Scripts/Core/NewUIManager.cs",
@@ -304,14 +300,11 @@ const nodes = {
         +void Toggle(UIPanelId id)
         +T Get~T~(UIPanelId id)
         +bool IsOpened(UIPanelId id)
-        +void RegisterOpened(UIPanel panel)
-        +void RegisterClosed(UIPanel panel)
         +bool IsWorldInputBlocked
       }
       NewUIManager --> UIPanel`,
   }),
-
-  UIPanel: classNode({
+  UIPanel: cls({
     title: "UIPanel",
     summary: "인벤토리, 장비창, 창고, 제작대 등 모든 UI 패널이 따르는 공통 패널 규격입니다.",
     source: "src/Assets/00_Scripts/UI_Scripts/UILogic/UIPanel.cs",
@@ -324,8 +317,7 @@ const nodes = {
       }
       NewUIManager --> UIPanel`,
   }),
-
-  UIPanelButton: classNode({
+  UIPanelButton: cls({
     title: "UIPanelButton",
     summary: "버튼 입력을 UIPanelId 기반 UI 명령으로 변환합니다.",
     source: "src/Assets/00_Scripts/UI_Scripts/UILogic/UIPanelButton.cs",
@@ -337,8 +329,7 @@ const nodes = {
       }
       UIPanelButton --> NewUIManager`,
   }),
-
-  CraftTreeBuilder: classNode({
+  CraftTreeBuilder: cls({
     title: "CraftTreeBuilder",
     summary: "레시피 데이터를 기반으로 다단계 제작 트리를 재귀적으로 생성합니다.",
     source: "src/Assets/00_Scripts/Craft/CraftTreeBuilder.cs",
@@ -360,8 +351,7 @@ const nodes = {
       CraftTreeBuilder --> CraftTreeNode
       CraftTreeNode --> CraftTreeNode`,
   }),
-
-  CraftTreeNode: classNode({
+  CraftTreeNode: cls({
     title: "CraftTreeNode",
     summary: "제작 결과 또는 재료 아이템을 트리 노드로 표현합니다.",
     source: "src/Assets/00_Scripts/Craft/CraftTreeNode.cs",
@@ -375,8 +365,7 @@ const nodes = {
       }
       CraftTreeNode --> CraftTreeNode : child`,
   }),
-
-  CraftTreeRenderer: classNode({
+  CraftTreeRenderer: cls({
     title: "CraftTreeRenderer",
     summary: "CraftTreeNode 구조를 런타임 UI 노드로 변환합니다.",
     source: "src/Assets/00_Scripts/Craft/CraftTreeRenderer.cs",
@@ -389,8 +378,7 @@ const nodes = {
       CraftTreeRenderer --> CraftTreeNode
       CraftTreeRenderer --> CraftTreeNodeView`,
   }),
-
-  CraftingService: classNode({
+  CraftingService: cls({
     title: "CraftingService",
     summary: "제작 가능 여부, 부족 재료, 실제 제작 처리를 담당합니다.",
     source: "src/Assets/00_Scripts/Craft/CraftingService.cs",
@@ -409,8 +397,7 @@ const nodes = {
       CraftingService --> CraftingStorageAdapter
       CraftingService --> CraftTreeNode`,
   }),
-
-  CraftingStorageAdapter: classNode({
+  CraftingStorageAdapter: cls({
     title: "CraftingStorageAdapter",
     summary: "제작 서비스가 인벤토리/창고 보유량을 같은 방식으로 조회하고 차감하도록 연결합니다.",
     source: "src/Assets/00_Scripts/Craft/CraftingStorageAdapter.cs",
@@ -426,8 +413,7 @@ const nodes = {
       }
       CraftingStorageAdapter --> Storage`,
   }),
-
-  IItemContainer: classNode({
+  IItemContainer: cls({
     title: "IItemContainer",
     summary: "서로 다른 아이템 창을 같은 이동 시스템에 연결하기 위한 공통 인터페이스입니다.",
     source: "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/IItemContainer.cs",
@@ -454,8 +440,7 @@ const nodes = {
       IItemContainer <|.. TargetInventoryContainerAdapter
       IItemContainer <|.. EquipmentAdapter`,
   }),
-
-  UIItemMoveManager: classNode({
+  UIItemMoveManager: cls({
     title: "UIItemMoveManager",
     summary: "컨테이너 간 이동, 병합, 스왑, 자동 이동, 장비 검증을 중앙에서 처리합니다.",
     source: "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/UIItemMoveManager.cs",
@@ -471,36 +456,15 @@ const nodes = {
         +bool CanMove(ItemContainerType fromType, int fromX, int fromY, ItemContainerType toType, int toX, int toY)
         +bool TryMove(ItemContainerType fromType, int fromX, int fromY, ItemContainerType toType, int toX, int toY)
         +bool TryAutoMove(ItemContainerType fromType, int fromX, int fromY)
-        +bool IsUIOpen(ItemContainerType type)
-        -bool TryMerge(IItemContainer from, int fromX, int fromY, IItemContainer to, int toX, int toY)
-        -bool CanMerge(IItemContainer from, int fromX, int fromY, IItemContainer to, int toX, int toY)
+        -bool TryMerge(IItemContainer from, IItemContainer to)
         -bool IsEquippableItem(int itemId)
       }
       UIItemMoveManager --> IItemContainer`,
   }),
-
-  InventoryContainerAdapter: adapterNode({
-    title: "InventoryContainerAdapter",
-    summary: "인벤토리 HUD와 Storage 모델을 IItemContainer로 연결하는 Adapter입니다.",
-    source: "src/Assets/00_Scripts/Inventory_Scripts/InventoryLogic/InventoryContainerAdapter.cs",
-    ui: "PlayerInventoryHud",
-  }),
-
-  StorageContainerAdapter: adapterNode({
-    title: "StorageContainerAdapter",
-    summary: "창고 패널과 Storage 모델을 IItemContainer로 연결하는 Adapter입니다.",
-    source: "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/StorageContainerAdapter.cs",
-    ui: "StoragePanelUI",
-  }),
-
-  TargetInventoryContainerAdapter: adapterNode({
-    title: "TargetInventoryContainerAdapter",
-    summary: "루팅 창과 Storage 모델을 IItemContainer로 연결하는 Adapter입니다.",
-    source: "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/TargetInventoryContainerAdapter.cs",
-    ui: "TargetInventoryHud",
-  }),
-
-  EquipmentAdapter: classNode({
+  InventoryContainerAdapter: adapter("InventoryContainerAdapter", "인벤토리 HUD와 Storage 모델을 IItemContainer로 연결하는 Adapter입니다.", "src/Assets/00_Scripts/Inventory_Scripts/InventoryLogic/InventoryContainerAdapter.cs", "PlayerInventoryHud"),
+  StorageContainerAdapter: adapter("StorageContainerAdapter", "창고 패널과 Storage 모델을 IItemContainer로 연결하는 Adapter입니다.", "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/StorageContainerAdapter.cs", "StoragePanelUI"),
+  TargetInventoryContainerAdapter: adapter("TargetInventoryContainerAdapter", "루팅 창과 Storage 모델을 IItemContainer로 연결하는 Adapter입니다.", "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/TargetInventoryContainerAdapter.cs", "TargetInventoryHud"),
+  EquipmentAdapter: cls({
     title: "EquipmentAdapter",
     summary: "장비창을 IItemContainer로 연결하고 슬롯 타입 검증과 장비 스탯 반영을 처리합니다.",
     source: "src/Assets/00_Scripts/Equipment/EquipmentAdapter.cs",
@@ -523,8 +487,7 @@ const nodes = {
       EquipmentAdapter ..|> IItemContainer
       EquipmentAdapter --> Storage`,
   }),
-
-  Storage: classNode({
+  Storage: cls({
     title: "Storage",
     summary: "인벤토리, 창고, 장비창, 루팅창이 공유하는 런타임 슬롯 데이터 모델입니다.",
     source: "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/Storage.cs",
@@ -552,8 +515,7 @@ const nodes = {
       Storage *-- StorageSlot
       Storage --> StorageData`,
   }),
-
-  StorageSlot: classNode({
+  StorageSlot: cls({
     title: "StorageSlot",
     summary: "Storage의 한 칸을 표현하는 슬롯 데이터입니다.",
     source: "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/StorageSlot.cs",
@@ -570,11 +532,10 @@ const nodes = {
       }
       Storage *-- StorageSlot`,
   }),
-
-  StorageData: classNode({
+  StorageData: cls({
     title: "StorageData",
     summary: "저장 시점에 런타임 StorageSlot을 SQLite 저장용 데이터로 변환한 DTO입니다.",
-    source: "src/Assets/00_Scripts/Player/Storage/StorageData.cs",
+    source: "src/Assets/00_Scripts/DataBase/StorageRepository.cs",
     classes: ["Storage", "StorageRepository"],
     graph: `classDiagram
       class StorageData {
@@ -589,8 +550,7 @@ const nodes = {
       Storage --> StorageData
       StorageRepository --> StorageData`,
   }),
-
-  StorageRepository: classNode({
+  StorageRepository: cls({
     title: "StorageRepository",
     summary: "StorageData와 SQLite row 사이를 매핑하는 Repository입니다.",
     source: "src/Assets/00_Scripts/DataBase/StorageRepository.cs",
@@ -610,8 +570,7 @@ const nodes = {
       StorageRepository --> StorageData
       StorageRepository --> StorageItem`,
   }),
-
-  StorageItem: classNode({
+  StorageItem: cls({
     title: "StorageItem",
     summary: "SQLite player storage table row를 표현하는 DB 모델입니다.",
     source: "src/Assets/00_Scripts/DataBase/PlayerStorageDB.cs",
@@ -628,8 +587,7 @@ const nodes = {
       }
       StorageRepository --> StorageItem`,
   }),
-
-  DBLoader: classNode({
+  DBLoader: cls({
     title: "DBLoader",
     summary: "StreamingAssets의 SQLite DB 파일을 검색하고 연결을 캐싱/복구합니다.",
     source: "src/Assets/00_Scripts/DataBase/DBLoader.cs",
@@ -646,8 +604,7 @@ const nodes = {
       StorageRepository --> DBLoader
       GameRepositories --> DBLoader`,
   }),
-
-  GameRepositories: classNode({
+  GameRepositories: cls({
     title: "GameRepositories",
     summary: "DBLoader에서 연결을 받아 도메인별 Repository를 구성합니다.",
     source: "src/Assets/00_Scripts/DataBase/GameRepositories.cs",
@@ -664,8 +621,7 @@ const nodes = {
       GameRepositories --> DBLoader
       GameRepositories --> StorageRepository`,
   }),
-
-  PlayerRegionTracker: classNode({
+  PlayerRegionTracker: cls({
     title: "PlayerRegionTracker",
     summary: "플레이어가 현재 어느 Region에 있는지 감지하고 변경 이벤트를 발행합니다.",
     source: "src/Assets/00_Scripts/Player/Core/PlayerRegionTracker.cs",
@@ -681,8 +637,7 @@ const nodes = {
       PlayerRegionTracker --> RegionSurface
       ZoneController --> PlayerRegionTracker`,
   }),
-
-  RegionGraph: classNode({
+  RegionGraph: cls({
     title: "RegionGraph",
     summary: "지역과 인접 지역 관계를 데이터로 표현해 Zone Culling의 기준을 제공합니다.",
     source: "src/Assets/00_Scripts/ZoneControllers/RegionGraph.cs",
@@ -698,8 +653,7 @@ const nodes = {
       RegionGraph *-- RegionNodeData
       ZoneController --> RegionGraph`,
   }),
-
-  RegionNodeData: classNode({
+  RegionNodeData: cls({
     title: "RegionNodeData",
     summary: "한 Region과 해당 Region의 인접 Region 목록을 보관합니다.",
     source: "src/Assets/00_Scripts/ZoneControllers/RegionGraph.cs",
@@ -711,8 +665,7 @@ const nodes = {
       }
       RegionGraph *-- RegionNodeData`,
   }),
-
-  RegionZoneEntry: classNode({
+  RegionZoneEntry: cls({
     title: "RegionZoneEntry",
     summary: "Inspector에서 Region과 Zone 오브젝트를 연결하기 위한 매핑 엔트리입니다.",
     source: "src/Assets/00_Scripts/ZoneControllers/RegionZoneEntry.cs",
@@ -725,8 +678,7 @@ const nodes = {
       ZoneController --> RegionZoneEntry
       RegionZoneEntry --> Zone`,
   }),
-
-  ZoneController: classNode({
+  ZoneController: cls({
     title: "ZoneController",
     summary: "현재 지역과 인접 지역만 활성화하고 협업 기능을 위한 Zone 상태 API를 제공합니다.",
     source: "src/Assets/00_Scripts/ZoneControllers/ZoneController.cs",
@@ -751,8 +703,7 @@ const nodes = {
       ZoneController --> RegionZoneEntry
       ZoneController --> Zone`,
   }),
-
-  Zone: classNode({
+  Zone: cls({
     title: "Zone",
     summary: "지역 단위 GameObject로, 지역 타입과 Zone 상태를 보유하고 지역별 스폰 루트를 관리합니다.",
     source: "src/Assets/00_Scripts/ZoneControllers/Zone.cs",
@@ -770,8 +721,7 @@ const nodes = {
       }
       ZoneController --> Zone`,
   }),
-
-  ZoneState: classNode({
+  ZoneState: cls({
     title: "ZoneState",
     summary: "Normal, Warning, Restricted 같은 지역 상태를 표현하는 enum입니다.",
     source: "src/Assets/00_Scripts/ZoneControllers/ZoneState.cs",
@@ -786,55 +736,7 @@ const nodes = {
       Zone --> ZoneState
       ZoneController --> ZoneState`,
   }),
-};
-
-function systemNode(config) {
-  return {
-    kind: "System",
-    ...config,
-  };
-}
-
-function classNode(config) {
-  return {
-    kind: "Class",
-    problem:
-      "이 책임이 UI나 다른 시스템에 직접 섞이면 기능 추가 시 변경 범위가 커지고 데이터 흐름을 추적하기 어려워집니다.",
-    solution:
-      "공통 인터페이스, ID 기반 레지스트리, Repository, 상태 API 같은 경계로 책임을 제한했습니다.",
-    ...config,
-  };
-}
-
-function adapterNode({ title, summary, source, ui }) {
-  return classNode({
-    title,
-    summary,
-    source,
-    classes: ["IItemContainer", "Storage", "UIItemMoveManager"],
-    graph: `classDiagram
-      class ${title} {
-        -Storage storage
-        -${ui} hud
-        +ItemContainerType ContainerType
-        +int Width
-        +int Height
-        +bool IsValidSlot(int x, int y)
-        +bool IsEmpty(int x, int y)
-        +int GetItemId(int x, int y)
-        +int GetAmount(int x, int y)
-        +bool SetSlot(int x, int y, int itemId, int amount)
-        +bool ClearSlot(int x, int y)
-        +bool CanDrop(UIDragPayload payload, int toX, int toY)
-        +bool HandleDrop(UIDragPayload payload, int toX, int toY)
-        +bool HandleClick(int x, int y)
-        +void RefreshUI()
-      }
-      ${title} ..|> IItemContainer
-      ${title} --> Storage
-      UIItemMoveManager --> ${title}`,
-  });
-}
+});
 
 const treeGroups = [
   {
@@ -875,10 +777,13 @@ const treeGroups = [
     ids: [
       "StorageData",
       "StorageRepository",
+      "StorageItem",
       "DBLoader",
       "GameRepositories",
       "PlayerRegionTracker",
       "RegionGraph",
+      "RegionNodeData",
+      "RegionZoneEntry",
       "ZoneController",
       "Zone",
       "ZoneState",
@@ -893,6 +798,51 @@ window.selectNode = (id) => {
   selectedId = id;
   render();
 };
+
+function system(config) {
+  return { kind: "System", ...config };
+}
+
+function cls(config) {
+  return {
+    kind: "Class",
+    problem:
+      "이 책임이 UI나 다른 시스템에 직접 섞이면 기능 추가 시 변경 범위가 커지고 데이터 흐름을 추적하기 어려워집니다.",
+    solution:
+      "공통 인터페이스, ID 기반 레지스트리, Repository, 상태 API 같은 경계로 책임을 제한했습니다.",
+    ...config,
+  };
+}
+
+function adapter(title, summary, source, uiName) {
+  return cls({
+    title,
+    summary,
+    source,
+    classes: ["IItemContainer", "Storage", "UIItemMoveManager"],
+    graph: `classDiagram
+      class ${title} {
+        -Storage storage
+        -${uiName} hud
+        +ItemContainerType ContainerType
+        +int Width
+        +int Height
+        +bool IsValidSlot(int x, int y)
+        +bool IsEmpty(int x, int y)
+        +int GetItemId(int x, int y)
+        +int GetAmount(int x, int y)
+        +bool SetSlot(int x, int y, int itemId, int amount)
+        +bool ClearSlot(int x, int y)
+        +bool CanDrop(UIDragPayload payload, int toX, int toY)
+        +bool HandleDrop(UIDragPayload payload, int toX, int toY)
+        +bool HandleClick(int x, int y)
+        +void RefreshUI()
+      }
+      ${title} ..|> IItemContainer
+      ${title} --> Storage
+      UIItemMoveManager --> ${title}`,
+  });
+}
 
 function renderTree() {
   const tree = document.querySelector("#tree");
@@ -927,7 +877,7 @@ async function renderGraph(node) {
   const graph = document.querySelector("#graph");
   graph.className = "mermaid";
   graph.removeAttribute("data-processed");
-  graph.textContent = node.graph;
+  graph.textContent = withClassClicks(node);
 
   if (!window.mermaid) {
     renderFallbackGraph(node);
@@ -950,68 +900,18 @@ async function renderGraph(node) {
       },
     });
     await window.mermaid.run({ nodes: [graph] });
-    bindGraphNodeNavigation(node);
   } catch (error) {
     renderFallbackGraph(node, error.message);
   }
 }
 
-function bindGraphNodeNavigation(node) {
-  const graph = document.querySelector("#graph");
-  const targets = getNavigableGraphTargets(node);
-  if (!targets.length) return;
-
-  for (const targetId of targets) {
-    const target = nodes[targetId];
-    if (!target) continue;
-
-    const graphId = cssEscape(`flowchart-${targetId}`);
-    const directNode = graph.querySelector(`#${graphId}, #${cssEscape(targetId)}`);
-    const labelNodes = [...graph.querySelectorAll(".node, .classGroup")].filter((element) =>
-      normalizeGraphText(element.textContent).includes(normalizeGraphText(targetId)),
-    );
-    const candidates = directNode ? [directNode, ...labelNodes] : labelNodes;
-
-    for (const element of candidates) {
-      rewriteGraphLabel(element, targetId, target.title);
-      element.setAttribute("role", "button");
-      element.setAttribute("tabindex", "0");
-      element.style.cursor = "pointer";
-      element.addEventListener("click", () => selectNode(targetId));
-      element.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          selectNode(targetId);
-        }
-      });
-    }
-  }
-}
-
-function getNavigableGraphTargets(node) {
-  const classTargets = node.classes || [];
-  const graphText = node.graph || "";
-  const graphTargets = Object.keys(nodes).filter((id) => graphText.includes(id));
-  return [...new Set([...classTargets, ...graphTargets])].filter((id) => nodes[id]);
-}
-
-function rewriteGraphLabel(element, id, title) {
-  const labels = [...element.querySelectorAll("text, .nodeLabel, .label")];
-  for (const label of labels) {
-    const text = normalizeGraphText(label.textContent);
-    if (text === normalizeGraphText(id) || text.includes(normalizeGraphText(id))) {
-      label.textContent = label.textContent.replace(new RegExp(id, "gi"), title);
-    }
-  }
-}
-
-function normalizeGraphText(value) {
-  return String(value || "").replace(/\s+/g, "").toLowerCase();
-}
-
-function cssEscape(value) {
-  if (window.CSS?.escape) return window.CSS.escape(value);
-  return String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+function withClassClicks(node) {
+  if (!node.graph || !node.graph.trim().startsWith("classDiagram")) return node.graph;
+  const ids = new Set(
+    [selectedId, ...(node.classes || [])].filter((id) => nodes[id] && node.graph.includes(id)),
+  );
+  const clickLines = [...ids].map((id) => `      click ${id} call selectNode("${id}")`);
+  return `${node.graph}\n${clickLines.join("\n")}`;
 }
 
 function renderFallbackGraph(node, message = "") {
@@ -1055,12 +955,12 @@ async function loadCodePreview(node) {
   link.textContent = "Open file";
 
   try {
-    const response = await fetch(source);
-    if (!response.ok) throw new Error("not found");
+    const response = await fetch(encodeURI(source));
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     const text = await response.text();
     preview.textContent = trimCode(text);
-  } catch {
-    preview.textContent = `${source}\n\n브라우저 보안 정책 때문에 로컬 파일 미리보기를 불러오지 못했습니다. Open file 링크로 원본을 확인할 수 있습니다.`;
+  } catch (error) {
+    preview.textContent = `${source}\n\n코드 미리보기를 불러오지 못했습니다: ${error.message}\nOpen file 링크로 원본을 확인할 수 있습니다.`;
   }
 }
 
