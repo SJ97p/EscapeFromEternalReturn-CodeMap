@@ -2,64 +2,61 @@
 
 ```mermaid
 flowchart TD
-    DataBootstrapper --> DBLoader
-    DBLoader --> GameRepositories
-    GameRepositories --> ItemRepository
+    SceneController --> BootstrapSceneController
+    SceneController --> LobbySceneController
+    SceneController --> InGameSceneController
+    GameSceneManager --> SceneController
+    GameSceneManager --> SceneEnterContext
+
+    NewUIManager --> UIPanel
+    UIPanel --> UIPanelId
+    UIPanelButton --> NewUIManager
+    PlayerInventoryHud --> UIPanel
+    EquipmentHud --> UIPanel
+    StoragePanelUI --> UIPanel
+    CraftingWorkbenchUI --> UIPanel
+
+    CraftRecipeDatabase --> CraftTreeBuilder
+    CraftTreeBuilder --> CraftTreeNode
+    CraftTreeNode --> CraftTreeRenderer
+    CraftTreeNode --> CraftingService
+    CraftingService --> CraftingStorageAdapter
+    CraftingStorageAdapter --> Storage
+
+    IItemContainer --> InventoryContainerAdapter
+    IItemContainer --> StorageContainerAdapter
+    IItemContainer --> TargetInventoryContainerAdapter
+    IItemContainer --> EquipmentAdapter
+    UIItemMoveManager --> IItemContainer
+    UIDragDropManager --> IItemContainer
+    InventoryContainerAdapter --> Storage
+    StorageContainerAdapter --> Storage
+    EquipmentAdapter --> Storage
+
+    Storage --> StorageSlot
+    Storage --> StorageData
+    StorageRepository --> StorageData
+    StorageRepository --> DBLoader
     GameRepositories --> StorageRepository
-    GameRepositories --> SaveFileRepository
-    GameDataStore --> MonsterDatabase
-    GameDataStore --> VFXDatabase
-    GameDataStore --> SFXDatabase
+    DBLoader --> SQLiteConnection
 
     PlayerRegionTracker --> ZoneController
     RegionGraph --> ZoneController
     ZoneController --> Zone
-    RestrictedZoneController --> ZoneController
-
-    Hyperloop --> InGameSceneController
-    Hyperloop --> NewUIManager
-
-    Inventory --> InventoryEventBus
-    Storage --> IItemContainer
-    InventoryContainerAdapter --> Inventory
-    StorageContainerAdapter --> Storage
-    UIDragDropManager --> IItemContainer
-
-    CraftTreeBuilder --> CraftTreeNode
-    CraftingService --> CraftingStorageAdapter
-    CraftingService --> CraftTreeNode
-    CraftTreeRenderer --> CraftTreeNodeView
-
-    PlayerFSM --> IPlayerState
-    PlayerFSM --> PlayerMove
-    PlayerFSM --> PlayerStat
-    PlayerFSM --> SkillManager
-    PlayerFSM --> SkillCaster
-    SkillCaster --> SkillBase
-    SkillBase --> SkillContext
-    SkillContext --> ISkillTargetQuery
-    ISkillTargetQuery --> IDamageable
-
-    MonsterController --> MonsterMovement
-    MonsterController --> MonsterCombat
-    BehaviorTree --> BossMonsterNode
-    BossMonsterNode --> IStrategy
-    BossComboExecutor --> BossMonsterSkillManager
-    BossComboExecutor --> BossCombatAction
-    BossComboAction --> BossCombatAction
+    ZoneController --> ZoneState
 ```
 
 ## Link Map
 
-- [ZoneController](classes/ZoneController.md)
-- [RestrictedZoneController](classes/RestrictedZoneController.md)
-- [Hyperloop](classes/Hyperloop.md)
-- [Inventory](classes/Inventory.md)
-- [Storage](classes/Storage.md)
+- [SceneController](classes/SceneController.md)
+- [GameSceneManager](classes/GameSceneManager.md)
+- [NewUIManager](classes/NewUIManager.md)
+- [UIPanel](classes/UIPanel.md)
+- [CraftTreeBuilder](classes/CraftTreeBuilder.md)
 - [CraftingService](classes/CraftingService.md)
-- [PlayerFSM](classes/PlayerFSM.md)
-- [SkillCaster](classes/SkillCaster.md)
-- [MonsterController](classes/MonsterController.md)
-- [BehaviorTree](classes/BehaviorTree.md)
-- [GameDataStore](classes/GameDataStore.md)
-
+- [IItemContainer](classes/IItemContainer.md)
+- [UIItemMoveManager](classes/UIItemMoveManager.md)
+- [Storage](classes/Storage.md)
+- [StorageRepository](classes/StorageRepository.md)
+- [ZoneController](classes/ZoneController.md)
+- [RegionGraph](classes/RegionGraph.md)

@@ -10,7 +10,7 @@
 - 보유 재료와 필요 재료 비교
 - 부족 재료 계산
 - 제작 시 재료 제거 후 결과 아이템 추가
-- UI와 제작 로직 분리
+- UI와 제작 실행 로직 분리
 
 ## Source
 
@@ -18,5 +18,5 @@
 
 ## Related
 
-- [Crafting Tree](../systems/crafting-tree.md)
+- [Recursive Crafting Tree](../systems/recursive-crafting-tree.md)
 

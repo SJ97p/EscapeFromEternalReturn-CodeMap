@@ -3,243 +3,213 @@ const repoBase = "https://github.com/sj97p/EscapeFromEternalReturn-CodeMap/blob/
 const nodes = {
   overview: {
     kind: "Overview",
-    title: "전체 시스템 구조",
+    title: "런타임 시스템 구조",
     summary:
-      "Escape From Eternal Return은 지역 이동, 파밍, 제작, 전투, 몬스터 AI, 데이터 로딩이 동시에 맞물리는 탑다운 생존 액션 RPG 프로젝트입니다.",
+      "씬, UI, 제작, 아이템 저장소, 저장/로드, 지역 최적화를 공통 규격과 데이터 흐름으로 연결한 런타임 아키텍처입니다.",
     problem:
-      "생존 액션 RPG는 지역 상태, 아이템 이동, 플레이어 전투, AI, 데이터 접근이 서로 직접 의존하면 작은 변경도 전체 런타임 흐름에 영향을 줍니다.",
+      "씬 전환, UI 패널, 아이템 이동, 제작, 저장, 월드 활성화가 각자 구현되면 기능이 늘어날수록 결합도가 높아지고 데이터 무결성이 깨지기 쉽습니다.",
     solution:
-      "Region, Inventory, Crafting, Player Combat, Monster AI, Data Repository를 독립된 시스템으로 나누고 공통 enum, adapter, event, repository 계층으로 연결했습니다.",
-    classes: ["ZoneController", "Inventory", "CraftingService", "PlayerFSM", "BehaviorTree", "GameDataStore"],
+      "SceneController, UIPanel Registry, IItemContainer Adapter, UIItemMoveManager, StorageRepository, RegionGraph/ZoneController로 책임을 나누고 중앙 흐름을 만들었습니다.",
+    classes: ["SceneController", "NewUIManager", "CraftTreeBuilder", "IItemContainer", "UIItemMoveManager", "StorageRepository", "ZoneController"],
     graph: `flowchart TD
-      region["Restricted Zone / Region"]
-      hyperloop["Hyperloop Travel"]
-      inventory["Inventory / Storage"]
-      crafting["Crafting Tree"]
-      player["Player Combat"]
-      monster["Monster / Boss AI"]
-      data["Data Repository"]
-      fog["Fog of War"]
+      scene["Scene Lifecycle"]
+      ui["UI Registry"]
+      crafting["Recursive Crafting Tree"]
+      item["Item Container Transaction"]
+      persistence["SQLite Storage Persistence"]
+      zone["RegionGraph Zone Culling"]
+      restricted["Restricted Zone API"]
 
-      data --> inventory
-      data --> monster
-      region --> hyperloop
-      region --> monster
-      inventory --> crafting
-      inventory --> player
-      player --> monster
-      fog --> player
-      fog --> monster
+      scene --> ui
+      ui --> crafting
+      ui --> item
+      crafting --> item
+      item --> persistence
+      zone --> restricted
+      zone --> item
 
-      click region call selectNode("restricted-zone")
-      click hyperloop call selectNode("hyperloop-travel")
-      click inventory call selectNode("inventory-storage")
-      click crafting call selectNode("crafting-tree")
-      click player call selectNode("player-combat")
-      click monster call selectNode("monster-ai")
-      click data call selectNode("data-repository")`,
+      click scene call selectNode("scene-ui-lifecycle")
+      click ui call selectNode("scene-ui-lifecycle")
+      click crafting call selectNode("recursive-crafting-tree")
+      click item call selectNode("item-container-transaction")
+      click persistence call selectNode("storage-persistence")
+      click zone call selectNode("zone-culling")
+      click restricted call selectNode("restricted-zone-api")`,
   },
-  "restricted-zone": {
+  "scene-ui-lifecycle": {
     kind: "System",
-    title: "Restricted Zone & Region",
+    title: "Scene Lifecycle & UI Registry",
     summary:
-      "플레이어 현재 지역과 인접 지역을 기준으로 Zone 활성화 범위를 관리하고, 시간 기반 금지구역 상태를 전파하는 시스템입니다.",
+      "모든 씬은 공통 SceneController 라이프사이클을 따르고, UI 패널은 UIPanelId 기반 레지스트리로 등록/조회/제어됩니다.",
     problem:
-      "지역 상태, 금지구역, 스폰, UI 알림이 각자 지역을 판단하면 실제 월드 상태와 표시가 쉽게 어긋납니다.",
+      "씬마다 UI와 전환 로직을 직접 참조하면 씬이 늘어날수록 컨텍스트 전달과 패널 상태가 어긋나기 쉽습니다.",
     solution:
-      "RegionGraphSO와 ZoneController로 지역 기준을 통일하고, RestrictedZoneController는 경고/확정 상태를 이벤트로 알리도록 나눴습니다.",
-    doc: "docs/systems/restricted-zone.md",
-    classes: ["ZoneController", "RestrictedZoneController", "RegionGraph", "Zone", "PlayerRegionTracker"],
+      "GameSceneManager가 씬 전환과 컨텍스트 전달을 중앙화하고, NewUIManager가 UIPanelId로 패널 Open/Close/Toggle을 처리합니다.",
+    doc: "docs/systems/scene-ui-lifecycle.md",
+    classes: ["SceneController", "GameSceneManager", "NewUIManager", "UIPanel"],
     graph: `flowchart TD
-      tracker["PlayerRegionTracker"]
-      graph["RegionGraphSO"]
-      controller["ZoneController"]
-      active["Active Regions"]
-      zone["Zone"]
-      restricted["RestrictedZoneController"]
-      state["Warning / Restricted State"]
-
-      tracker --> controller
-      graph --> controller
-      controller --> active --> zone
-      restricted --> state --> controller
-
-      click controller call selectNode("ZoneController")
-      click restricted call selectNode("RestrictedZoneController")`,
-  },
-  "hyperloop-travel": {
-    kind: "System",
-    title: "Hyperloop Travel",
-    summary:
-      "월드의 하이퍼루프 오브젝트가 지역 정보와 UI 진입만 담당하고 실제 이동 정책은 씬/UI 컨트롤러로 위임합니다.",
-    problem:
-      "지역 이동 오브젝트가 씬 전환, 탈출 가능 여부, 목적지 UI를 모두 직접 처리하면 이동 규칙이 여러 곳으로 흩어집니다.",
-    solution:
-      "Hyperloop은 Region과 Interact만 갖고, InGameSceneController와 NewUIManager를 통해 탈출/이동 UI 흐름을 연결합니다.",
-    doc: "docs/systems/hyperloop-travel.md",
-    classes: ["Hyperloop", "HyperloopRegionUI", "InGameSceneController", "NewUIManager"],
-    graph: `flowchart LR
-      player["Player Interact"]
-      hyperloop["Hyperloop"]
-      scene["InGameSceneController"]
+      request["Scene Change Request"]
+      manager["GameSceneManager"]
+      context["SceneEnterContext"]
+      controller["SceneController"]
       ui["NewUIManager"]
-      panel["Hyperloop UI"]
+      panel["UIPanel / UIPanelId"]
 
-      player --> hyperloop
-      hyperloop --> scene
-      hyperloop --> ui --> panel
+      request --> manager --> context
+      manager --> controller
+      controller --> ui --> panel
 
-      click hyperloop call selectNode("Hyperloop")`,
+      click manager call selectNode("GameSceneManager")
+      click controller call selectNode("SceneController")
+      click ui call selectNode("NewUIManager")
+      click panel call selectNode("UIPanel")`,
   },
-  "inventory-storage": {
+  "recursive-crafting-tree": {
     kind: "System",
-    title: "Inventory & Storage",
+    title: "Recursive Crafting Tree",
     summary:
-      "인벤토리, 장비, 보관함, 루팅 컨테이너를 공통 컨테이너 조작 흐름으로 묶는 아이템 이동 시스템입니다.",
+      "재료가 다시 제작 아이템일 수 있는 다단계 조합식을 레시피 DB 기반 재귀 트리로 생성하고 런타임 UI로 렌더링합니다.",
     problem:
-      "드래그, 퀵무브, 장착, 루팅 로직이 UI마다 따로 있으면 같은 아이템 이동인데도 예외 처리가 중복됩니다.",
+      "제작 재료가 다시 제작 가능한 아이템이면 단순 리스트 UI로는 전체 제작 경로를 표현하기 어렵습니다.",
     solution:
-      "IItemContainer와 Adapter, DragDrop/Move/Use 매니저를 통해 UI 이벤트와 실제 컨테이너 변경을 분리했습니다.",
-    doc: "docs/systems/inventory-storage.md",
-    classes: ["Inventory", "Storage", "IItemContainer", "UIDragDropManager", "InventoryEventBus"],
+      "CraftTreeBuilder가 레시피를 재귀 탐색해 CraftTreeNode를 만들고, CraftTreeRenderer와 CraftingService가 표시와 제작 실행을 나눠 맡습니다.",
+    doc: "docs/systems/recursive-crafting-tree.md",
+    classes: ["CraftTreeBuilder", "CraftingService", "CraftTreeNode", "CraftTreeRenderer"],
     graph: `flowchart TD
-      view["Slot View"]
-      drag["UIDragDropManager"]
-      payload["UIDragPayload"]
-      container["IItemContainer"]
-      inventory["Inventory"]
-      storage["Storage"]
-      event["InventoryEventBus"]
-
-      view --> drag --> payload --> container
-      container --> inventory --> event
-      container --> storage
-
-      click inventory call selectNode("Inventory")
-      click storage call selectNode("Storage")`,
-  },
-  "crafting-tree": {
-    kind: "System",
-    title: "Crafting Tree",
-    summary:
-      "제작 트리 표시와 제작 가능 여부, 부족 재료 계산, 재료 차감/결과 지급을 분리한 제작 시스템입니다.",
-    problem:
-      "제작 가능 여부와 트리 표시가 UI에 섞이면 워크벤치, 검색 테이블, 디버그 제작에서 같은 규칙을 재사용하기 어렵습니다.",
-    solution:
-      "CraftTreeBuilder/Renderer는 표현을 담당하고 CraftingService는 재료 계산과 제작 실행을 담당하도록 분리했습니다.",
-    doc: "docs/systems/crafting-tree.md",
-    classes: ["CraftingService", "CraftTreeBuilder", "CraftTreeNode", "CraftingStorageAdapter"],
-    graph: `flowchart TD
-      recipe["CraftRecipeDatabase"]
+      db["CraftRecipeDatabase"]
       builder["CraftTreeBuilder"]
       node["CraftTreeNode"]
+      child["Recursive Ingredients"]
       renderer["CraftTreeRenderer"]
       service["CraftingService"]
-      adapter["CraftingStorageAdapter"]
 
-      recipe --> builder --> node
+      db --> builder --> node --> child
+      child --> builder
       node --> renderer
-      node --> service --> adapter
+      node --> service
 
+      click builder call selectNode("CraftTreeBuilder")
       click service call selectNode("CraftingService")`,
   },
-  "player-combat": {
+  "item-container-transaction": {
     kind: "System",
-    title: "Player Combat",
+    title: "Item Container Transaction",
     summary:
-      "플레이어 FSM, 스킬 캐스팅, 타겟 쿼리, 상태이상 효과를 나누어 전투 상태 충돌을 줄인 구조입니다.",
+      "인벤토리, 창고, 장비창, 루팅창을 IItemContainer와 Adapter로 통합하고, UIItemMoveManager가 이동 트랜잭션을 처리합니다.",
     problem:
-      "이동, 공격, 스킬, 스턴, 넉백, 사망이 동시에 발생하면 상태 우선순위가 없을 때 입력과 액션이 꼬입니다.",
+      "각 UI가 아이템 이동을 따로 처리하면 병합, 스왑, 장비 검증, 자동 루팅 규칙이 중복되고 아이템 복사/증발 위험이 커집니다.",
     solution:
-      "PlayerFSM은 점유 상태와 우선순위로 전이를 제한하고, SkillCaster는 캐스팅 중 이동 잠금과 종료 대기를 담당합니다.",
-    doc: "docs/systems/player-combat.md",
-    classes: ["PlayerFSM", "SkillCaster", "SkillBase", "ISkillTargetQuery", "HitResolver"],
+      "컨테이너를 인터페이스로 추상화하고 중앙 이동 루틴에서 Resolve, Validate, Merge/Swap, Commit, Refresh 순서로 처리합니다.",
+    doc: "docs/systems/item-container-transaction.md",
+    classes: ["IItemContainer", "UIItemMoveManager", "Storage", "InventoryContainerAdapter", "StorageContainerAdapter", "EquipmentAdapter"],
     graph: `flowchart TD
-      input["InputEventBus"]
-      fsm["PlayerFSM"]
-      state["IPlayerState"]
-      caster["SkillCaster"]
-      skill["SkillBase"]
-      query["ISkillTargetQuery"]
-      target["IDamageable"]
+      ui["Drag / Click"]
+      iface["IItemContainer"]
+      adapters["Adapters"]
+      move["UIItemMoveManager"]
+      validate["Validate / Merge / Swap"]
+      commit["Commit or Rollback"]
+      refresh["Refresh UI"]
 
-      input --> fsm --> state --> caster
-      caster --> skill --> query --> target
+      ui --> iface
+      adapters --> iface
+      iface --> move --> validate --> commit --> refresh
 
-      click fsm call selectNode("PlayerFSM")
-      click caster call selectNode("SkillCaster")`,
+      click iface call selectNode("IItemContainer")
+      click move call selectNode("UIItemMoveManager")
+      click commit call selectNode("Storage")`,
   },
-  "monster-ai": {
+  "storage-persistence": {
     kind: "System",
-    title: "Monster / Boss AI",
+    title: "SQLite Storage Persistence",
     summary:
-      "일반 몬스터와 보스 패턴을 상태/행동 트리/전략/스킬 슬롯/콤보 실행기로 나누어 구성한 AI 시스템입니다.",
+      "런타임 Storage 슬롯 데이터를 저장 시점에 StorageData DTO로 변환하고, SQLite Repository를 통해 세이브 슬롯별로 저장/로드합니다.",
     problem:
-      "보스 페이즈, 스킬 쿨타임, 콤보, 추적/복귀 조건을 큰 조건문 하나로 처리하면 패턴 추가가 어려워집니다.",
+      "런타임 슬롯 배열을 DB 구조에 직접 묶으면 UI, 게임 로직, 저장 로직이 강하게 결합됩니다.",
     solution:
-      "BehaviorTree와 Strategy가 판단을 담당하고, BossMonsterSkillManager와 BossComboExecutor가 스킬 실행을 담당합니다.",
-    doc: "docs/systems/monster-ai.md",
-    classes: ["MonsterController", "BehaviorTree", "BossComboExecutor", "BossMonsterSkillManager"],
+      "Storage는 런타임 모델만 관리하고, 저장 시 비어있지 않은 슬롯만 StorageData로 추출해 StorageRepository가 SQLite row로 매핑합니다.",
+    doc: "docs/systems/storage-persistence.md",
+    classes: ["Storage", "StorageRepository", "DBLoader", "GameRepositories"],
     graph: `flowchart TD
-      controller["BossMonsterController"]
-      tree["BehaviorTree"]
-      selector["Selector / Sequence"]
-      strategy["IStrategy"]
-      manager["BossMonsterSkillManager"]
-      combo["BossComboExecutor"]
-      action["BossCombatAction"]
-
-      controller --> tree --> selector --> strategy
-      strategy --> manager
-      strategy --> combo --> action
-
-      click tree call selectNode("BehaviorTree")
-      click combo call selectNode("BossComboExecutor")
-      click controller call selectNode("MonsterController")`,
-  },
-  "data-repository": {
-    kind: "System",
-    title: "Data Repository",
-    summary:
-      "SQLite/ScriptableObject 기반 데이터를 Repository와 GameDataStore로 감싸 런타임 시스템의 데이터 접근을 단순화합니다.",
-    problem:
-      "런타임 코드가 DB 연결명과 테이블 구조를 직접 알면 데이터 변경이 게임 로직 곳곳으로 퍼집니다.",
-    solution:
-      "DBLoader와 GameRepositories가 DB 접근을 만들고, GameDataStore는 ScriptableObject 참조 허브 역할을 맡습니다.",
-    doc: "docs/systems/data-repository.md",
-    classes: ["GameRepositories", "GameDataStore", "DBLoader", "ItemRepository", "StorageRepository"],
-    graph: `flowchart TD
-      bootstrap["DataBootstrapper"]
+      storage["StorageSlot[,]"]
+      export["ExportToStorageData"]
+      dto["StorageData DTO"]
+      repo["StorageRepository"]
       loader["DBLoader"]
-      repos["GameRepositories"]
-      item["ItemRepository"]
-      storage["StorageRepository"]
-      save["SaveFileRepository"]
-      store["GameDataStore"]
-      so["ScriptableObject DB"]
+      sqlite["SQLite DB"]
 
-      bootstrap --> loader --> repos
-      repos --> item
-      repos --> storage
-      repos --> save
-      store --> so
+      storage --> export --> dto --> repo
+      loader --> repo --> sqlite
 
-      click store call selectNode("GameDataStore")
-      click repos call selectNode("GameRepositories")`,
+      click storage call selectNode("Storage")
+      click repo call selectNode("StorageRepository")`,
   },
-  ZoneController: classNode("ZoneController", "지역과 Zone GameObject를 연결하고 현재/인접 지역만 활성화하는 컨트롤러입니다.", "src/Assets/00_Scripts/ZoneControllers/ZoneController.cs", ["Restricted Zone & Region"]),
-  RestrictedZoneController: classNode("RestrictedZoneController", "시간 기반으로 경고 지역과 금지구역을 선택해 이벤트로 전파하는 컨트롤러입니다.", "src/Assets/00_Scripts/ZoneControllers/RestrictedZoneController.cs", ["Restricted Zone & Region"]),
-  Hyperloop: classNode("Hyperloop", "지역 이동 상호작용과 하이퍼루프 UI 진입을 연결하는 월드 오브젝트입니다.", "src/Assets/00_Scripts/Hyperloop/Hyperloop.cs", ["Hyperloop Travel"]),
-  Inventory: classNode("Inventory", "슬롯 배열 기반의 인벤토리 데이터와 기본 아이템 이동 연산을 담당합니다.", "src/Assets/00_Scripts/Inventory_Scripts/InventoryLogic/Inventory.cs", ["Inventory & Storage"]),
-  Storage: classNode("Storage", "보관함/루팅 컨테이너의 슬롯 데이터를 관리하는 아이템 컨테이너입니다.", "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/Storage.cs", ["Inventory & Storage"]),
-  CraftingService: classNode("CraftingService", "필요 재료 계산, 제작 가능 여부, 부족 재료, 실제 제작 처리를 담당합니다.", "src/Assets/00_Scripts/Craft/CraftingService.cs", ["Crafting Tree"]),
-  PlayerFSM: classNode("PlayerFSM", "플레이어 상태 객체를 보유하고 우선순위 기반 상태 전이를 수행합니다.", "src/Assets/00_Scripts/Player/Core/PlayerFSM.cs", ["Player Combat"]),
-  SkillCaster: classNode("SkillCaster", "스킬 캐스팅 중 이동 잠금, 애니메이션 이벤트, 종료 대기와 취소를 처리합니다.", "src/Assets/00_Scripts/Player/Skill/SkillCaster.cs", ["Player Combat"]),
-  MonsterController: classNode("MonsterController", "일반 몬스터의 이동, 전투, 감지, 애니메이션 흐름을 묶는 컨트롤러입니다.", "src/Assets/00_Scripts/Monster/MonsterController.cs", ["Monster / Boss AI"]),
-  BehaviorTree: classNode("BehaviorTree", "보스 AI 행동 트리의 루트 노드로 자식 노드를 순차 평가합니다.", "src/Assets/00_Scripts/Monster/BossMonster/BT/BehaviorTree.cs", ["Monster / Boss AI"]),
-  BossComboExecutor: classNode("BossComboExecutor", "보스 스킬과 중첩 콤보 액션을 순차 실행하는 코루틴 실행기입니다.", "src/Assets/00_Scripts/Monster/BossMonster/BossSkill/Combo/BossComboExecutor.cs", ["Monster / Boss AI"]),
-  GameDataStore: classNode("GameDataStore", "ScriptableObject 데이터베이스와 공용 프리팹 참조를 제공하는 데이터 허브입니다.", "src/Assets/00_Scripts/DataBase/GameDataStore.cs", ["Data Repository"]),
-  GameRepositories: classNode("GameRepositories", "DBLoader에서 연결을 받아 도메인별 Repository를 생성하는 팩토리성 객체입니다.", "src/Assets/00_Scripts/DataBase/GameRepositories.cs", ["Data Repository"]),
+  "zone-culling": {
+    kind: "System",
+    title: "RegionGraph Zone Culling",
+    summary:
+      "플레이어 현재 Region과 인접 Region만 활성화해 보이지 않는 지역의 몬스터/상자/이벤트 부하를 줄입니다.",
+    problem:
+      "전체 월드를 항상 활성화하면 플레이어가 보지 않는 지역까지 Update와 렌더링 비용이 발생합니다.",
+    solution:
+      "RegionGraph로 현재 지역의 인접 지역을 조회하고, ZoneController가 activeRegions 차집합만 계산해 Zone GameObject를 토글합니다.",
+    doc: "docs/systems/zone-culling.md",
+    classes: ["ZoneController", "RegionGraph", "Zone", "PlayerRegionTracker"],
+    graph: `flowchart TD
+      tracker["PlayerRegionTracker"]
+      graph["RegionGraph"]
+      controller["ZoneController"]
+      active["activeRegions"]
+      enable["regionsToEnable"]
+      disable["regionsToDisable"]
+      zone["Zone GameObjects"]
+
+      tracker --> controller
+      graph --> controller --> active
+      active --> enable --> zone
+      active --> disable --> zone
+
+      click controller call selectNode("ZoneController")
+      click graph call selectNode("RegionGraph")`,
+  },
+  "restricted-zone-api": {
+    kind: "System",
+    title: "Restricted Zone Extension API",
+    summary:
+      "금지구역 시스템이 Zone 내부 구현을 직접 알지 않고 Region과 ZoneState API만으로 연결되도록 확장 지점을 분리했습니다.",
+    problem:
+      "금지구역 로직이 Zone 내부 오브젝트나 UI를 직접 조작하면 협업 중 변경 비용이 커집니다.",
+    solution:
+      "ZoneController의 SetZoneState, SetZonesState, OnZoneStateChanged를 통해 외부 시스템은 상태 API만 사용하도록 분리했습니다.",
+    doc: "docs/systems/restricted-zone-api.md",
+    classes: ["ZoneController", "Zone", "RegionGraph"],
+    graph: `flowchart TD
+      restricted["Restricted Zone Rule"]
+      api["ZoneController API"]
+      zone["Zone.SetZoneState"]
+      event["OnZoneStateChanged"]
+      ui["UI / Damage / Event Extensions"]
+
+      restricted --> api --> zone
+      api --> event --> ui
+
+      click api call selectNode("ZoneController")`,
+  },
+  SceneController: classNode("SceneController", "모든 씬 컨트롤러가 따르는 공통 라이프사이클 기반 클래스입니다.", "src/Assets/00_Scripts/Core/SceneController.cs", ["Scene Lifecycle"]),
+  GameSceneManager: classNode("GameSceneManager", "씬 전환과 씬 진입 컨텍스트 전달을 중앙에서 관리합니다.", "src/Assets/00_Scripts/Core/GameSceneManager.cs", ["Scene Lifecycle"]),
+  NewUIManager: classNode("NewUIManager", "UIPanelId 기반으로 UI 패널을 등록하고 Open/Close/Toggle을 처리합니다.", "src/Assets/00_Scripts/Core/NewUIManager.cs", ["UI Registry"]),
+  UIPanel: classNode("UIPanel", "모든 UI 패널이 따르는 공통 패널 규격입니다.", "src/Assets/00_Scripts/UI_Scripts/UILogic/UIPanel.cs", ["UI Registry"]),
+  CraftTreeBuilder: classNode("CraftTreeBuilder", "레시피 데이터를 기반으로 다단계 제작 트리를 재귀적으로 생성합니다.", "src/Assets/00_Scripts/Craft/CraftTreeBuilder.cs", ["Recursive Crafting Tree"]),
+  CraftingService: classNode("CraftingService", "제작 가능 여부, 부족 재료, 실제 제작 처리를 담당합니다.", "src/Assets/00_Scripts/Craft/CraftingService.cs", ["Recursive Crafting Tree"]),
+  IItemContainer: classNode("IItemContainer", "서로 다른 아이템 창을 같은 이동 시스템에 연결하기 위한 공통 인터페이스입니다.", "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/IItemContainer.cs", ["Item Container Transaction"]),
+  UIItemMoveManager: classNode("UIItemMoveManager", "컨테이너 간 이동, 병합, 스왑, 자동 이동, 장비 검증을 중앙에서 처리합니다.", "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/UIItemMoveManager.cs", ["Item Container Transaction"]),
+  Storage: classNode("Storage", "인벤토리, 창고, 장비창, 루팅창이 공유하는 런타임 슬롯 데이터 모델입니다.", "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/Storage.cs", ["Item Transaction", "Persistence"]),
+  StorageRepository: classNode("StorageRepository", "StorageData와 SQLite row 사이를 매핑하는 Repository입니다.", "src/Assets/00_Scripts/DataBase/StorageRepository.cs", ["Storage Persistence"]),
+  ZoneController: classNode("ZoneController", "현재 지역과 인접 지역만 활성화하고 Zone 상태 API를 제공하는 컨트롤러입니다.", "src/Assets/00_Scripts/ZoneControllers/ZoneController.cs", ["Zone Culling", "Restricted Zone API"]),
+  RegionGraph: classNode("RegionGraph", "지역과 인접 지역 관계를 데이터로 표현해 Zone Culling의 기준을 제공합니다.", "src/Assets/00_Scripts/ZoneControllers/RegionGraph.cs", ["Zone Culling"]),
+  InventoryContainerAdapter: classNode("InventoryContainerAdapter", "인벤토리 HUD와 Storage 모델을 IItemContainer로 연결하는 Adapter입니다.", "src/Assets/00_Scripts/Inventory_Scripts/InventoryLogic/InventoryContainerAdapter.cs", ["Adapter Pattern"]),
+  StorageContainerAdapter: classNode("StorageContainerAdapter", "창고 패널과 Storage 모델을 IItemContainer로 연결하는 Adapter입니다.", "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/StorageContainerAdapter.cs", ["Adapter Pattern"]),
+  EquipmentAdapter: classNode("EquipmentAdapter", "장비창을 IItemContainer로 연결하고 슬롯 타입 검증과 스탯 반영을 처리합니다.", "src/Assets/00_Scripts/Equipment/EquipmentAdapter.cs", ["Adapter Pattern"]),
 };
 
 function classNode(title, summary, source, related) {
@@ -247,8 +217,8 @@ function classNode(title, summary, source, related) {
     kind: "Class",
     title,
     summary,
-    problem: "이 클래스가 맡은 책임이 다른 시스템에 섞이면 변경 범위가 커지고 테스트하기 어려워집니다.",
-    solution: "명확한 입력과 출력, 이벤트 또는 어댑터를 통해 주변 시스템과 연결되도록 책임을 제한했습니다.",
+    problem: "이 책임이 UI나 다른 시스템에 직접 섞이면 기능 추가 시 변경 범위가 커지고 데이터 흐름을 추적하기 어려워집니다.",
+    solution: "공통 인터페이스, ID 기반 레지스트리, Repository, 상태 API 같은 경계로 책임을 제한했습니다.",
     source,
     classes: related,
     graph: `flowchart TD
@@ -264,27 +234,26 @@ const treeGroups = [
   {
     title: "Systems",
     items: [
-      ["restricted-zone", "Restricted Zone"],
-      ["hyperloop-travel", "Hyperloop Travel"],
-      ["inventory-storage", "Inventory / Storage"],
-      ["crafting-tree", "Crafting Tree"],
-      ["player-combat", "Player Combat"],
-      ["monster-ai", "Monster / Boss AI"],
-      ["data-repository", "Data Repository"],
+      ["scene-ui-lifecycle", "Scene / UI"],
+      ["recursive-crafting-tree", "Crafting Tree"],
+      ["item-container-transaction", "Item Transaction"],
+      ["storage-persistence", "Storage Persistence"],
+      ["zone-culling", "Zone Culling"],
+      ["restricted-zone-api", "Restricted Zone API"],
     ],
   },
   {
     title: "Classes",
     items: [
-      ["ZoneController", "ZoneController"],
-      ["Hyperloop", "Hyperloop"],
-      ["Inventory", "Inventory"],
+      ["SceneController", "SceneController"],
+      ["NewUIManager", "NewUIManager"],
+      ["CraftTreeBuilder", "CraftTreeBuilder"],
+      ["IItemContainer", "IItemContainer"],
+      ["UIItemMoveManager", "UIItemMoveManager"],
       ["Storage", "Storage"],
-      ["CraftingService", "CraftingService"],
-      ["PlayerFSM", "PlayerFSM"],
-      ["SkillCaster", "SkillCaster"],
-      ["BehaviorTree", "BehaviorTree"],
-      ["GameDataStore", "GameDataStore"],
+      ["StorageRepository", "StorageRepository"],
+      ["ZoneController", "ZoneController"],
+      ["RegionGraph", "RegionGraph"],
     ],
   },
 ];
@@ -315,6 +284,7 @@ function renderTree() {
       button.type = "button";
       button.className = `tree-item ${nodes[id]?.kind === "Class" ? "child" : ""}`;
       button.textContent = label;
+      button.dataset.nodeId = id;
       button.addEventListener("click", () => selectNode(id));
       wrapper.append(button);
     }
@@ -325,6 +295,7 @@ function renderTree() {
 
 async function renderGraph(node) {
   const graph = document.querySelector("#graph");
+  graph.className = "mermaid";
   graph.removeAttribute("data-processed");
   graph.innerHTML = node.graph;
 
@@ -374,7 +345,7 @@ async function loadCodePreview(node) {
     const response = await fetch(source);
     if (!response.ok) throw new Error("not found");
     const text = await response.text();
-    preview.textContent = text.split("\n").slice(0, 90).join("\n");
+    preview.textContent = text.split("\n").slice(0, 100).join("\n");
   } catch {
     preview.textContent = `${source}\n\n브라우저 보안 정책 때문에 로컬 파일 미리보기를 불러오지 못했습니다. Open file 링크로 원본을 확인할 수 있습니다.`;
   }
@@ -393,7 +364,7 @@ async function render() {
   document.querySelector("#detail-solution").textContent = node.solution;
 
   document.querySelectorAll(".tree-item").forEach((item) => {
-    item.classList.toggle("active", item.textContent === node.title || item.textContent === selectedId);
+    item.classList.toggle("active", item.dataset.nodeId === selectedId);
   });
 
   const classList = document.querySelector("#class-list");

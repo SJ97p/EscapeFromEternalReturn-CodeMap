@@ -1,26 +1,25 @@
 # Improvement Notes
 
+## Scene / UI
+
+`UIPanelId` 기반 레지스트리로 호출 구조는 정리되었지만, 패널 의존성이 늘어날수록 열림 조건과 닫힘 정책이 복잡해질 수 있습니다. 다음 단계에서는 `UIPanelPolicy`나 화면 상태 머신을 두어 “어떤 패널 조합이 동시에 열릴 수 있는가”를 데이터로 관리할 수 있습니다.
+
+## Item Transaction
+
+`UIItemMoveManager`가 이동, 병합, 스왑, 자동 이동, 장비 검증을 모두 처리합니다. 현재 구조는 중앙화 장점이 크지만 클래스가 커질 수 있으므로, 장기적으로는 `MoveCommand`, `MergePolicy`, `AutoMovePolicy`, `EquipmentMovePolicy`로 나누면 테스트 단위가 더 선명해집니다.
+
+## Persistence
+
+저장 시 비어있지 않은 슬롯만 `StorageData`로 변환하는 방식은 데이터량을 줄입니다. 다음 단계에서는 저장 전후 슬롯 총량 검증을 추가해 아이템 복사/증발을 자동 감지할 수 있습니다.
+
+## Zone Culling
+
+현재 구조는 현재 지역과 인접 지역만 활성화하는 방식입니다. 추가 개선으로는 거리 단계별 활성화, 비동기 프리로드, 몬스터/상자 풀링 유지 정책을 분리할 수 있습니다.
+
+## Flyweight Direction
+
+현재 구현은 Flyweight 패턴이 직접 적용되었다기보다, 적용하기 좋은 구조에 가깝습니다. `RegionGraphSO`, `ZoneMonsterSpawnTable`, 아이템/레시피 DB처럼 여러 Zone이 공유하는 데이터를 ScriptableObject 기반 불변 데이터로 분리하면 Zone 인스턴스별 중복 상태를 줄일 수 있습니다.
+
 ## Encoding Cleanup
 
-일부 C# 주석이 깨져 있어 원본 의도를 코드만으로 따라가야 하는 구간이 있습니다. 포트폴리오 공개 전에는 파일 인코딩을 UTF-8로 통일하고, 깨진 주석은 삭제하거나 새 설명으로 교체하는 것이 좋습니다.
-
-## Restricted Zone
-
-금지구역 선택 로직은 현재 랜덤 후보 선택에 가깝습니다. 실제 게임 밸런스에서는 플레이어 위치, 남은 지역 수, 파밍 동선, 보스 지역 등을 가중치로 반영하는 정책 객체로 분리할 수 있습니다.
-
-## Inventory / Storage
-
-아이템 이동 규칙이 UI 드래그, 퀵무브, 장비 장착, 보관함 이동으로 늘어날수록 예외가 많아집니다. `MoveItemCommand` 같은 명령 객체로 이동 의도와 검증 결과를 기록하면 디버깅과 테스트가 쉬워집니다.
-
-## Player Combat
-
-FSM의 우선순위 규칙은 읽기 쉽지만, 상태 전이가 많아지면 전이표가 더 안전합니다. `CanTransition(from, to)` 규칙을 별도 테이블로 빼면 스턴/넉백/사망 같은 강제 상태를 더 명확하게 관리할 수 있습니다.
-
-## Monster / Boss AI
-
-보스 콤보 실행은 재귀적으로 하위 액션을 처리합니다. 패턴이 복잡해질 경우 실행 로그, 중단 조건, 페이즈 전환 조건을 포함한 `BossActionRunner`로 확장하는 것이 좋습니다.
-
-## Data Layer
-
-Repository 계층이 이미 분리되어 있으므로, 다음 단계는 에디터 검증 도구입니다. DB 테이블의 item id, spawn id, recipe id가 실제 ScriptableObject/Prefab 참조와 맞는지 빌드 전 검증하면 런타임 오류를 줄일 수 있습니다.
-
+일부 원본 C# 주석 인코딩이 깨져 있습니다. 공개 포트폴리오 품질을 위해 UTF-8로 통일하고 깨진 주석은 제거하거나 새 설명으로 교체하는 것이 좋습니다.

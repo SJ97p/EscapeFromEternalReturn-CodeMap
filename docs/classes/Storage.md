@@ -2,14 +2,16 @@
 
 ## Role
 
-보관함/루팅 컨테이너 계열의 슬롯 데이터를 관리하는 클래스입니다.
+인벤토리, 창고, 장비창, 루팅창이 공유하는 런타임 슬롯 데이터 모델입니다.
 
 ## Responsibilities
 
-- 컨테이너 슬롯 데이터 보유
-- 슬롯별 아이템 추가/제거
-- 보관함 UI와 Adapter 계층에 데이터 제공
-- 루팅/퀵무브/드래그 이동의 대상 컨테이너 역할 수행
+- 2차원 슬롯 배열 초기화
+- 슬롯 조회/설정/비우기
+- 아이템 수량 합산
+- 스택 우선 추가
+- 재료 제거
+- 저장 시 비어있지 않은 슬롯만 `StorageData`로 변환
 
 ## Source
 
@@ -17,5 +19,6 @@
 
 ## Related
 
-- [Inventory & Storage](../systems/inventory-storage.md)
+- [Item Container Transaction](../systems/item-container-transaction.md)
+- [Storage Persistence](../systems/storage-persistence.md)
 
