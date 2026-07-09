@@ -950,9 +950,68 @@ async function renderGraph(node) {
       },
     });
     await window.mermaid.run({ nodes: [graph] });
+    bindGraphNodeNavigation(node);
   } catch (error) {
     renderFallbackGraph(node, error.message);
   }
+}
+
+function bindGraphNodeNavigation(node) {
+  const graph = document.querySelector("#graph");
+  const targets = getNavigableGraphTargets(node);
+  if (!targets.length) return;
+
+  for (const targetId of targets) {
+    const target = nodes[targetId];
+    if (!target) continue;
+
+    const graphId = cssEscape(`flowchart-${targetId}`);
+    const directNode = graph.querySelector(`#${graphId}, #${cssEscape(targetId)}`);
+    const labelNodes = [...graph.querySelectorAll(".node, .classGroup")].filter((element) =>
+      normalizeGraphText(element.textContent).includes(normalizeGraphText(targetId)),
+    );
+    const candidates = directNode ? [directNode, ...labelNodes] : labelNodes;
+
+    for (const element of candidates) {
+      rewriteGraphLabel(element, targetId, target.title);
+      element.setAttribute("role", "button");
+      element.setAttribute("tabindex", "0");
+      element.style.cursor = "pointer";
+      element.addEventListener("click", () => selectNode(targetId));
+      element.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          selectNode(targetId);
+        }
+      });
+    }
+  }
+}
+
+function getNavigableGraphTargets(node) {
+  const classTargets = node.classes || [];
+  const graphText = node.graph || "";
+  const graphTargets = Object.keys(nodes).filter((id) => graphText.includes(id));
+  return [...new Set([...classTargets, ...graphTargets])].filter((id) => nodes[id]);
+}
+
+function rewriteGraphLabel(element, id, title) {
+  const labels = [...element.querySelectorAll("text, .nodeLabel, .label")];
+  for (const label of labels) {
+    const text = normalizeGraphText(label.textContent);
+    if (text === normalizeGraphText(id) || text.includes(normalizeGraphText(id))) {
+      label.textContent = label.textContent.replace(new RegExp(id, "gi"), title);
+    }
+  }
+}
+
+function normalizeGraphText(value) {
+  return String(value || "").replace(/\s+/g, "").toLowerCase();
+}
+
+function cssEscape(value) {
+  if (window.CSS?.escape) return window.CSS.escape(value);
+  return String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
 }
 
 function renderFallbackGraph(node, message = "") {
