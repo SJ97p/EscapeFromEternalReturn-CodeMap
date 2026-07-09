@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Escape From Eternal Return Code Map</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Unity Client Portfolio</p>
+        <h1>Escape From Eternal Return Code Map</h1>
+      </div>
+      <nav class="top-actions" aria-label="external links">
+        <a href="https://github.com/sj97p/EscapeFromEternalReturn-CodeMap#readme" target="_blank" rel="noreferrer">README</a>
+        <a href="https://github.com/sj97p/EscapeFromEternalReturn-CodeMap/blob/main/docs/architecture.md" target="_blank" rel="noreferrer">Docs</a>
+        <a href="https://github.com/sj97p/EscapeFromEternalReturn-CodeMap/blob/main/docs/class-diagram.md" target="_blank" rel="noreferrer">Class Diagram</a>
+        <a href="https://github.com/sj97p/EscapeFromEternalReturn-CodeMap/tree/main/src/Assets/00_Scripts" target="_blank" rel="noreferrer">Source</a>
+      </nav>
+    </header>
+
+    <main class="app-shell">
+      <aside class="sidebar" aria-label="system tree">
+        <div class="sidebar-head">
+          <span class="label">Explorer</span>
+          <button id="reset-view" type="button">전체 구조</button>
+        </div>
+        <div id="tree" class="tree"></div>
+      </aside>
+
+      <section class="canvas-panel">
+        <div class="panel-head">
+          <div>
+            <span id="scope-label" class="label">System Overview</span>
+            <h2 id="graph-title">전체 시스템 구조</h2>
+          </div>
+          <div id="breadcrumbs" class="breadcrumbs"></div>
+        </div>
+
+        <div class="graph-wrap">
+          <div id="graph" class="mermaid"></div>
+        </div>
+
+        <div class="hint-bar">
+          <span>노드를 클릭하면 관련 구조와 코드 미리보기가 오른쪽 패널에 표시됩니다.</span>
+        </div>
+      </section>
+
+      <aside class="detail-panel" aria-label="selected node detail">
+        <div class="detail-head">
+          <span id="detail-kind" class="label">Selected</span>
+          <h2 id="detail-title">Escape From Eternal Return</h2>
+          <p id="detail-summary"></p>
+        </div>
+
+        <section class="detail-section">
+          <h3>Problem</h3>
+          <p id="detail-problem"></p>
+        </section>
+
+        <section class="detail-section">
+          <h3>Solution</h3>
+          <p id="detail-solution"></p>
+        </section>
+
+        <section class="detail-section">
+          <h3>Key Classes</h3>
+          <div id="class-list" class="chip-list"></div>
+        </section>
+
+        <section class="detail-section code-section">
+          <div class="code-head">
+            <h3>Code Preview</h3>
+            <a id="code-link" href="#" target="_blank" rel="noreferrer">Open file</a>
+          </div>
+          <pre><code id="code-preview">시스템이나 클래스를 선택하면 관련 코드가 표시됩니다.</code></pre>
+        </section>
+      </aside>
+    </main>
+
+    <script defer src="./app.js"></script>
+  </body>
+</html>
