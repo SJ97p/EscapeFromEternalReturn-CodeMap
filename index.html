@@ -30,7 +30,7 @@
         <div id="tree" class="tree"></div>
       </aside>
 
-      <section class="canvas-panel">
+      <section class="canvas-panel" aria-label="node graph">
         <div class="panel-head">
           <div>
             <span id="scope-label" class="label">System Overview</span>
@@ -44,7 +44,7 @@
         </div>
 
         <div class="hint-bar">
-          <span>노드를 클릭하면 관련 구조와 코드 미리보기가 오른쪽 패널에 표시됩니다.</span>
+          <span>노드를 클릭하면 관련 구조가 선택되고, 오른쪽에서 설명과 코드를 확인할 수 있습니다.</span>
         </div>
       </section>
 
@@ -69,14 +69,17 @@
           <h3>Key Classes</h3>
           <div id="class-list" class="chip-list"></div>
         </section>
+      </aside>
 
-        <section class="detail-section code-section">
-          <div class="code-head">
-            <h3>Code Preview</h3>
-            <a id="code-link" href="#" target="_blank" rel="noreferrer">Open file</a>
+      <aside class="code-panel" aria-label="selected source code preview">
+        <div class="code-head">
+          <div>
+            <span class="label">Source</span>
+            <h2>Code Preview</h2>
           </div>
-          <pre><code id="code-preview">시스템이나 클래스를 선택하면 관련 코드가 표시됩니다.</code></pre>
-        </section>
+          <a id="code-link" href="#" target="_blank" rel="noreferrer">Open file</a>
+        </div>
+        <pre><code id="code-preview">시스템이나 클래스를 선택하면 관련 코드가 표시됩니다.</code></pre>
       </aside>
     </main>
 
