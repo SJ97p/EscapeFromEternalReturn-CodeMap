@@ -1012,6 +1012,108 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function initResizableLayout() {
+  const shell = document.querySelector("#app-shell");
+  if (!shell) return;
+
+  const saved = readSavedLayout();
+  if (saved) applyLayout(saved);
+
+  document.querySelectorAll("[data-resizer]").forEach((handle) => {
+    handle.addEventListener("pointerdown", (event) => {
+      if (window.matchMedia("(max-width: 1100px)").matches) return;
+
+      const type = handle.dataset.resizer;
+      const canvas = document.querySelector(".canvas-panel");
+      const detail = document.querySelector(".detail-panel");
+      const code = document.querySelector(".code-panel");
+      const start = {
+        x: event.clientX,
+        graph: canvas.getBoundingClientRect().width,
+        detail: detail.getBoundingClientRect().width,
+        code: code.getBoundingClientRect().width,
+      };
+
+      handle.classList.add("active");
+      document.body.classList.add("resizing");
+      handle.setPointerCapture(event.pointerId);
+
+      const move = (moveEvent) => {
+        const delta = moveEvent.clientX - start.x;
+        const next = {
+          graph: start.graph,
+          detail: start.detail,
+          code: start.code,
+        };
+
+        if (type === "graph-detail") {
+          next.graph = clamp(start.graph + delta, 260, start.graph + start.detail - 280);
+          next.detail = start.graph + start.detail - next.graph;
+        } else {
+          next.detail = clamp(start.detail + delta, 280, start.detail + start.code - 280);
+          next.code = start.detail + start.code - next.detail;
+        }
+
+        applyLayout(next);
+      };
+
+      const stop = () => {
+        handle.classList.remove("active");
+        document.body.classList.remove("resizing");
+        handle.removeEventListener("pointermove", move);
+        handle.removeEventListener("pointerup", stop);
+        handle.removeEventListener("pointercancel", stop);
+        saveCurrentLayout();
+      };
+
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", stop);
+      handle.addEventListener("pointercancel", stop);
+    });
+
+    handle.addEventListener("dblclick", () => {
+      localStorage.removeItem("codeMapLayout");
+      shell.style.removeProperty("--graph-col");
+      shell.style.removeProperty("--detail-col");
+      shell.style.removeProperty("--code-col");
+    });
+  });
+}
+
+function applyLayout({ graph, detail, code }) {
+  const shell = document.querySelector("#app-shell");
+  shell.style.setProperty("--graph-col", `${Math.round(graph)}px`);
+  shell.style.setProperty("--detail-col", `${Math.round(detail)}px`);
+  shell.style.setProperty("--code-col", `${Math.round(code)}px`);
+}
+
+function saveCurrentLayout() {
+  const canvas = document.querySelector(".canvas-panel");
+  const detail = document.querySelector(".detail-panel");
+  const code = document.querySelector(".code-panel");
+  const layout = {
+    graph: Math.round(canvas.getBoundingClientRect().width),
+    detail: Math.round(detail.getBoundingClientRect().width),
+    code: Math.round(code.getBoundingClientRect().width),
+  };
+  localStorage.setItem("codeMapLayout", JSON.stringify(layout));
+}
+
+function readSavedLayout() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("codeMapLayout"));
+    if (!saved?.graph || !saved?.detail || !saved?.code) return null;
+    return saved;
+  } catch {
+    return null;
+  }
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
 document.querySelector("#reset-view").addEventListener("click", () => selectNode("overview"));
+initResizableLayout();
 renderTree();
 render();

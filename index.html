@@ -21,7 +21,7 @@
       </nav>
     </header>
 
-    <main class="app-shell">
+    <main class="app-shell" id="app-shell">
       <aside class="sidebar" aria-label="system tree">
         <div class="sidebar-head">
           <span class="label">Explorer</span>
@@ -48,6 +48,8 @@
         </div>
       </section>
 
+      <div class="splitter" data-resizer="graph-detail" role="separator" aria-orientation="vertical" title="그래프와 설명 영역 폭 조절"></div>
+
       <aside class="detail-panel" aria-label="selected node detail">
         <div class="detail-head">
           <span id="detail-kind" class="label">Selected</span>
@@ -70,6 +72,8 @@
           <div id="class-list" class="chip-list"></div>
         </section>
       </aside>
+
+      <div class="splitter" data-resizer="detail-code" role="separator" aria-orientation="vertical" title="설명과 코드 영역 폭 조절"></div>
 
       <aside class="code-panel" aria-label="selected source code preview">
         <div class="code-head">
