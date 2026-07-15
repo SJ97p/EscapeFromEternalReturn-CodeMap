@@ -554,6 +554,7 @@ const treeGroups = [
 
 let selectedId = "overview";
 const navigationStack = [];
+let currentCodeMethods = [];
 
 window.selectNode = (id, options = {}) => {
   if (!nodes[id]) return;
@@ -667,6 +668,7 @@ async function renderGraph(node) {
     await window.mermaid.run({ nodes: [graph] });
     normalizeGraphLabelCase(node);
     attachGraphNodeClicks(node);
+    attachGraphMethodClicks(node);
   } catch (error) {
     renderFallbackGraph(node, error.message);
   }
@@ -701,6 +703,38 @@ function attachGraphNodeClicks(node) {
         if (event.key !== "Enter" && event.key !== " ") return;
         event.preventDefault();
         selectNode(target.id);
+      });
+    }
+  }
+}
+
+function attachGraphMethodClicks(node) {
+  const graph = document.querySelector("#graph");
+  const svg = graph.querySelector("svg");
+  if (!svg || !node.source) return;
+
+  const methods = getGraphMethods(node);
+  if (!methods.length) return;
+
+  const textNodes = [...svg.querySelectorAll("text, tspan, span.nodeLabel")];
+  for (const method of methods) {
+    for (const textNode of textNodes) {
+      const text = normalizeLabel(textNode.textContent);
+      if (!text.includes(`${method.name}(`) && !text.includes(`${method.graphName}(`)) continue;
+
+      textNode.classList.add("graph-method-clickable");
+      textNode.setAttribute("role", "button");
+      textNode.setAttribute("tabindex", "0");
+      textNode.setAttribute("aria-label", `Jump to ${method.name}`);
+      textNode.addEventListener("click", (event) => {
+        event.stopPropagation();
+        jumpToMethod(method.name);
+      });
+      textNode.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        event.stopPropagation();
+        jumpToMethod(method.name);
       });
     }
   }
@@ -817,6 +851,8 @@ async function loadCodePreview(node) {
   const preview = document.querySelector("#code-preview");
   const link = document.querySelector("#code-link");
   const source = node.source;
+  currentCodeMethods = [];
+  renderMethodChips([]);
 
   if (!source) {
     preview.textContent = "시스템 노드에서는 Key Classes를 선택하면 코드 미리보기가 표시됩니다.";
@@ -832,16 +868,122 @@ async function loadCodePreview(node) {
     const response = await fetch(encodeURI(source));
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     const text = await response.text();
-    preview.textContent = trimCode(text);
+    currentCodeMethods = getGraphMethods(node);
+    renderMethodChips(currentCodeMethods);
+    renderCodePreview(text);
   } catch (error) {
     preview.textContent = `${source}\n\n코드 미리보기를 불러오지 못했습니다: ${error.message}\nOpen file 링크로 원본을 확인할 수 있습니다.`;
   }
 }
 
-function trimCode(text) {
+function renderMethodChips(methods) {
+  const container = document.querySelector("#code-methods");
+  container.innerHTML = "";
+
+  for (const method of methods) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "method-chip";
+    button.textContent = method.name;
+    button.addEventListener("click", () => jumpToMethod(method.name));
+    container.append(button);
+  }
+}
+
+function renderCodePreview(text) {
+  const preview = document.querySelector("#code-preview");
   const lines = text.replace(/\r\n/g, "\n").split("\n");
-  if (lines.length <= 120) return text;
-  return `${lines.slice(0, 120).join("\n")}\n\n// ... ${lines.length - 120} more lines. Open file for full source.`;
+  preview.innerHTML = lines
+    .map((line, index) => {
+      const lineNumber = index + 1;
+      return `<span class="code-line" data-line="${lineNumber}"><span class="line-number">${lineNumber}</span><span class="line-code">${highlightCSharp(line) || " "}</span></span>`;
+    })
+    .join("");
+}
+
+function jumpToMethod(methodName) {
+  const preview = document.querySelector("#code-preview");
+  const line = findMethodLine(methodName);
+  if (!line) return;
+
+  preview.querySelectorAll(".active-line").forEach((item) => item.classList.remove("active-line"));
+  const target = preview.querySelector(`[data-line="${line}"]`);
+  if (!target) return;
+
+  target.classList.add("active-line");
+  target.scrollIntoView({ block: "center", behavior: "smooth" });
+
+  window.setTimeout(() => {
+    target.classList.remove("active-line");
+  }, 1800);
+}
+
+function findMethodLine(methodName) {
+  const rows = [...document.querySelectorAll("#code-preview .code-line")];
+  const pattern = new RegExp(`\\b${escapeRegExp(methodName)}\\s*(?:<[^>]+>)?\\s*\\(`);
+
+  for (const row of rows) {
+    const code = row.querySelector(".line-code")?.textContent || "";
+    if (pattern.test(code)) return Number(row.dataset.line);
+  }
+
+  return 0;
+}
+
+function getGraphMethods(node) {
+  if (!node?.graph || !node.graph.trim().startsWith("classDiagram")) return [];
+
+  const methodPattern = /^[ \t]*[+\-#~]\s*[\w<>,_\[\]\s]+\s+([A-Za-z_]\w*)\s*\(/gm;
+  const seen = new Set();
+  const methods = [];
+
+  for (const match of node.graph.matchAll(methodPattern)) {
+    const graphName = match[1];
+    const name = normalizeMethodName(graphName);
+    if (seen.has(name) || name === node.title) continue;
+    seen.add(name);
+    methods.push({ name, graphName });
+  }
+
+  return methods;
+}
+
+function normalizeMethodName(name) {
+  return name.replace(/_[A-Z]$/, "");
+}
+
+function highlightCSharp(line) {
+  const keywordPattern =
+    /\b(abstract|as|base|bool|break|case|catch|class|const|continue|default|delegate|do|else|enum|event|false|finally|float|for|foreach|get|if|in|int|interface|internal|is|namespace|new|null|object|out|override|private|protected|public|readonly|return|set|static|string|struct|switch|this|throw|true|try|typeof|using|var|virtual|void|while)\b/;
+  const tokenPattern =
+    /\/\/.*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b\d+(?:\.\d+)?\b|\b[A-Z][A-Za-z0-9_]*\b|\b[A-Za-z_][A-Za-z0-9_]*(?=\s*\()|\b(abstract|as|base|bool|break|case|catch|class|const|continue|default|delegate|do|else|enum|event|false|finally|float|for|foreach|get|if|in|int|interface|internal|is|namespace|new|null|object|out|override|private|protected|public|readonly|return|set|static|string|struct|switch|this|throw|true|try|typeof|using|var|virtual|void|while)\b/g;
+
+  let html = "";
+  let cursor = 0;
+
+  for (const match of line.matchAll(tokenPattern)) {
+    const token = match[0];
+    html += escapeHtml(line.slice(cursor, match.index));
+    html += wrapCodeToken(token, keywordPattern);
+    cursor = match.index + token.length;
+  }
+
+  html += escapeHtml(line.slice(cursor));
+  return html;
+}
+
+function wrapCodeToken(token, keywordPattern) {
+  const escaped = escapeHtml(token);
+  if (token.startsWith("//")) return `<span class="tok-comment">${escaped}</span>`;
+  if (token.startsWith('"') || token.startsWith("'")) return `<span class="tok-string">${escaped}</span>`;
+  if (/^\d/.test(token)) return `<span class="tok-number">${escaped}</span>`;
+  if (keywordPattern.test(token)) return `<span class="tok-keyword">${escaped}</span>`;
+  if (/^[A-Z]/.test(token)) return `<span class="tok-type">${escaped}</span>`;
+  return `<span class="tok-method">${escaped}</span>`;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 async function render() {

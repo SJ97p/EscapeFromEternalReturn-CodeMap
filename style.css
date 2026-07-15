@@ -297,6 +297,13 @@ body.resizing {
   stroke-width: 2px;
 }
 
+.graph-method-clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(33, 102, 194, 0.45);
+  text-underline-offset: 3px;
+}
+
 .fallback-graph {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -432,6 +439,30 @@ body.resizing {
   font-weight: 700;
 }
 
+.code-methods {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-height: 0;
+  max-height: 78px;
+  overflow: auto;
+  padding: 10px 0 0;
+}
+
+.method-chip {
+  padding: 5px 8px;
+  border-color: #c7d7ee;
+  background: #f8fbff;
+  color: #1d4f91;
+  font-size: 12px;
+}
+
+.method-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 pre {
   margin: 0;
 }
@@ -466,6 +497,58 @@ code {
   font-size: 12.5px;
   line-height: 1.55;
   white-space: pre;
+}
+
+#code-preview {
+  display: block;
+  min-width: max-content;
+}
+
+.code-line {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  min-height: 19px;
+}
+
+.line-number {
+  padding-right: 12px;
+  color: #667085;
+  text-align: right;
+  user-select: none;
+}
+
+.line-code {
+  padding-left: 12px;
+  border-left: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.code-line.active-line .line-number,
+.code-line.active-line .line-code {
+  background: rgba(33, 102, 194, 0.22);
+}
+
+.tok-keyword {
+  color: #7dd3fc;
+}
+
+.tok-type {
+  color: #c4b5fd;
+}
+
+.tok-string {
+  color: #fbbf24;
+}
+
+.tok-comment {
+  color: #8ea3b8;
+}
+
+.tok-number {
+  color: #fca5a5;
+}
+
+.tok-method {
+  color: #86efac;
 }
 
 .nodeLabel,
