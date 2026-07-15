@@ -244,6 +244,22 @@ body.resizing {
   text-align: right;
 }
 
+.graph-nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+#graph-back {
+  min-width: 64px;
+}
+
+#graph-back:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .graph-wrap {
   flex: 1;
   min-height: 0;
@@ -253,6 +269,32 @@ body.resizing {
 
 .graph-wrap svg {
   max-width: none;
+}
+
+.graph-wrap svg text,
+.graph-wrap svg .nodeLabel,
+.graph-wrap svg .label {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.graph-clickable {
+  cursor: pointer;
+}
+
+.graph-clickable rect,
+.graph-clickable polygon,
+.graph-clickable path {
+  transition:
+    filter 0.15s ease,
+    stroke-width 0.15s ease;
+}
+
+.graph-clickable:hover rect,
+.graph-clickable:hover polygon,
+.graph-clickable:hover path {
+  filter: drop-shadow(0 3px 7px rgba(33, 102, 194, 0.22));
+  stroke-width: 2px;
 }
 
 .fallback-graph {

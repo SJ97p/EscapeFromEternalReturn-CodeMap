@@ -553,12 +553,24 @@ const treeGroups = [
 ];
 
 let selectedId = "overview";
+const navigationStack = [];
 
-window.selectNode = (id) => {
+window.selectNode = (id, options = {}) => {
   if (!nodes[id]) return;
+  const shouldPush = options.push !== false;
+  if (shouldPush && selectedId !== id) {
+    navigationStack.push(selectedId);
+    if (navigationStack.length > 40) navigationStack.shift();
+  }
   selectedId = id;
   render();
 };
+
+function goBack() {
+  const previousId = navigationStack.pop();
+  if (!previousId) return;
+  selectNode(previousId, { push: false });
+}
 
 function system(config) {
   return { kind: "System", ...config };
@@ -653,6 +665,8 @@ async function renderGraph(node) {
       },
     });
     await window.mermaid.run({ nodes: [graph] });
+    normalizeGraphLabelCase(node);
+    attachGraphNodeClicks(node);
   } catch (error) {
     renderFallbackGraph(node, error.message);
   }
@@ -660,6 +674,118 @@ async function renderGraph(node) {
 
 function withClassClicks(node) {
   return node.graph;
+}
+
+function attachGraphNodeClicks(node) {
+  const graph = document.querySelector("#graph");
+  const svg = graph.querySelector("svg");
+  if (!svg) return;
+
+  const targets = getGraphClickTargets(node);
+  const textNodes = [...svg.querySelectorAll("text, tspan, span")];
+
+  for (const target of targets) {
+    for (const textNode of textNodes) {
+      if (!isGraphLabelMatch(textNode.textContent, target.label)) continue;
+
+      const clickable = textNode.closest("g.node, g.classGroup, g.cluster, g") || textNode;
+      clickable.classList.add("graph-clickable");
+      clickable.setAttribute("role", "button");
+      clickable.setAttribute("tabindex", "0");
+      clickable.setAttribute("aria-label", `Open ${target.label}`);
+      clickable.addEventListener("click", (event) => {
+        event.stopPropagation();
+        selectNode(target.id);
+      });
+      clickable.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        selectNode(target.id);
+      });
+    }
+  }
+}
+
+function normalizeGraphLabelCase(node) {
+  const graph = document.querySelector("#graph");
+  const svg = graph.querySelector("svg");
+  if (!svg) return;
+
+  const labels = getGraphLabels(node);
+  const textNodes = [...svg.querySelectorAll("text, tspan, span.nodeLabel")];
+
+  for (const textNode of textNodes) {
+    const current = normalizeLabel(textNode.textContent);
+    const match = labels.find((label) => current === normalizeLabel(label).toUpperCase());
+    if (match && textNode.children.length === 0) {
+      textNode.textContent = match;
+    }
+  }
+}
+
+function getGraphClickTargets(node) {
+  const ids = new Set([selectedId, ...(node.classes || [])]);
+  for (const target of getMermaidClickTargets(node)) {
+    if (nodes[target.id]) ids.add(target.id);
+  }
+
+  const targets = [...ids]
+    .filter((id) => nodes[id])
+    .map((id) => ({ id, label: nodes[id].title }));
+
+  for (const target of getMermaidClickTargets(node)) {
+    if (nodes[target.id]) targets.push(target);
+  }
+
+  return dedupeTargets(targets);
+}
+
+function getGraphLabels(node) {
+  const labels = new Set();
+  if (node?.title) labels.add(node.title);
+  for (const target of getGraphClickTargets(node)) labels.add(target.label);
+
+  const labelPattern = /\["([^"]+)"\]/g;
+  for (const match of node.graph.matchAll(labelPattern)) {
+    labels.add(match[1]);
+  }
+
+  return [...labels];
+}
+
+function getMermaidClickTargets(node) {
+  const labelsByKey = new Map();
+  const nodePattern = /(\w+)\["([^"]+)"\]/g;
+  for (const match of node.graph.matchAll(nodePattern)) {
+    labelsByKey.set(match[1], match[2]);
+  }
+
+  const clickTargets = [];
+  const clickPattern = /click\s+(\w+)\s+call\s+selectNode\("([^"]+)"\)/g;
+  for (const match of node.graph.matchAll(clickPattern)) {
+    const label = labelsByKey.get(match[1]) || nodes[match[2]]?.title;
+    if (label) clickTargets.push({ id: match[2], label });
+  }
+
+  return clickTargets;
+}
+
+function dedupeTargets(targets) {
+  const seen = new Set();
+  return targets.filter((target) => {
+    const key = `${target.id}:${target.label}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function isGraphLabelMatch(actual, expected) {
+  return normalizeLabel(actual) === normalizeLabel(expected);
+}
+
+function normalizeLabel(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
 }
 
 function renderFallbackGraph(node, message = "") {
@@ -731,6 +857,7 @@ async function render() {
   document.querySelector("#detail-solution").textContent = node.decision;
   document.querySelector("#detail-final").textContent = node.final;
   document.querySelector("#detail-next").textContent = node.next;
+  document.querySelector("#graph-back").disabled = navigationStack.length === 0;
 
   document.querySelectorAll(".tree-item").forEach((item) => {
     item.classList.toggle("active", item.dataset.nodeId === selectedId);
@@ -903,6 +1030,7 @@ function clamp(value, min, max) {
 }
 
 document.querySelector("#reset-view").addEventListener("click", () => selectNode("overview"));
+document.querySelector("#graph-back").addEventListener("click", goBack);
 document.querySelector("#modal-close").addEventListener("click", closeMediaModal);
 document.querySelector("#media-modal").addEventListener("click", (event) => {
   if (event.target.id === "media-modal") closeMediaModal();
