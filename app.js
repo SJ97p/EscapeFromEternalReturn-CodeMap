@@ -253,19 +253,19 @@ const nodes = {
     graph: `flowchart TD
       tracker["PlayerRegionTracker"]
       current["Current Region"]
-      graph["RegionGraph"]
+      regionGraphNode["RegionGraph"]
       adjacent["Adjacent Regions"]
       controller["ZoneController"]
       active["Active Zone Set"]
       inactive["Inactive Zones"]
 
       tracker --> current --> controller
-      graph --> adjacent --> controller
+      regionGraphNode --> adjacent --> controller
       controller --> active
       controller --> inactive
 
       click tracker call selectNode("PlayerRegionTracker")
-      click graph call selectNode("RegionGraph")
+      click regionGraphNode call selectNode("RegionGraph")
       click controller call selectNode("ZoneController")
       click active call selectNode("Zone")`,
   }),
@@ -328,12 +328,12 @@ Object.assign(nodes, {
     GameSceneManager --> SceneEnterContext`),
   NewUIManager: cls("NewUIManager", "UIPanelId 기반으로 UI 패널을 등록하고 Open/Close/Toggle을 처리하는 레지스트리입니다.", "src/Assets/00_Scripts/Core/NewUIManager.cs", ["UIPanel", "UIPanelButton"], `classDiagram
     class NewUIManager {
-      -Dictionary~UIPanelId, UIPanel~ panelMap
-      -HashSet~UIPanel~ openedPanels
+      -Dictionary_UIPanelId_UIPanel panelMap
+      -HashSet_UIPanel openedPanels
       +void Open(UIPanelId id)
       +void Close(UIPanelId id)
       +void Toggle(UIPanelId id)
-      +T Get~T~(UIPanelId id)
+      +T Get_T(UIPanelId id)
       +bool IsOpened(UIPanelId id)
     }
     NewUIManager --> UIPanel`),
@@ -354,7 +354,7 @@ Object.assign(nodes, {
     class CraftTreeBuilder {
       -CraftRecipeDatabase recipeDatabase
       +CraftTreeNode BuildTree(int rootItemId, int needAmount)
-      -CraftTreeNode BuildNode(int itemId, int needAmount, HashSet~int~ visited)
+      -CraftTreeNode BuildNode(int itemId, int needAmount, HashSet_int visited)
     }
     CraftTreeBuilder --> CraftTreeNode`),
   CraftTreeNode: cls("CraftTreeNode", "제작 결과 또는 재료 아이템을 트리 노드로 표현합니다.", "src/Assets/00_Scripts/Craft/CraftTreeNode.cs", ["CraftTreeBuilder", "CraftTreeRenderer"], `classDiagram
@@ -376,8 +376,8 @@ Object.assign(nodes, {
       -CraftingStorageAdapter storageAdapter
       +bool CanCraft(CraftTreeNode rootNode)
       +bool TryCraft(CraftTreeNode rootNode)
-      +Dictionary~int, int~ GetRequiredItems(CraftTreeNode rootNode)
-      +Dictionary~int, int~ GetMissingItems(CraftTreeNode rootNode)
+      +Dictionary_int_int GetRequiredItems(CraftTreeNode rootNode)
+      +Dictionary_int_int GetMissingItems(CraftTreeNode rootNode)
     }
     CraftingService --> CraftingStorageAdapter`),
   CraftingStorageAdapter: cls("CraftingStorageAdapter", "제작 서비스가 인벤토리/창고 보유량을 같은 방식으로 조회하고 차감하도록 연결합니다.", "src/Assets/00_Scripts/Craft/CraftingStorageAdapter.cs", ["CraftingService", "Storage"], `classDiagram
@@ -406,8 +406,8 @@ Object.assign(nodes, {
     IItemContainer <|.. EquipmentAdapter`),
   UIItemMoveManager: cls("UIItemMoveManager", "컨테이너 간 이동, 병합, 스왑, 자동 이동, 장비 검증을 중앙에서 처리합니다.", "src/Assets/00_Scripts/Storage_Scripts/StorageLogic/UIItemMoveManager.cs", ["IItemContainer", "Storage", "EquipmentAdapter"], `classDiagram
     class UIItemMoveManager {
-      -Dictionary~ItemContainerType, IItemContainer~ containers
-      -HashSet~ItemContainerType~ activeUIStates
+      -Dictionary_ItemContainerType_IItemContainer containers
+      -HashSet_ItemContainerType activeUIStates
       +void RegisterContainer(IItemContainer container)
       +bool TryMove(ItemContainerType fromType, int fromX, int fromY, ItemContainerType toType, int toX, int toY)
       +bool TryAutoMove(ItemContainerType fromType, int fromX, int fromY)
@@ -422,10 +422,10 @@ Object.assign(nodes, {
       +int Width
       +int Height
       -StorageSlot[,] slots
-      +void LoadFromDB(List~StorageData~ rows)
+      +void LoadFromDB(List_StorageData rows)
       +void SetItem(int x, int y, int itemId, int amount)
       +void ClearSlot(int x, int y)
-      +List~StorageData~ ExportToStorageData(StorageType storageType, int saveId)
+      +List_StorageData ExportToStorageData(StorageType storageType, int saveId)
     }
     Storage *-- StorageSlot
     Storage --> StorageData`),
@@ -453,11 +453,11 @@ Object.assign(nodes, {
   StorageRepository: cls("StorageRepository", "StorageData와 SQLite row 사이를 매핑하는 Repository입니다.", "src/Assets/00_Scripts/DataBase/StorageRepository.cs", ["StorageData", "StorageItem", "DBLoader"], `classDiagram
     class StorageRepository {
       -DBLoader _dbLoader
-      +IEnumerable~StorageData~ GetAll()
+      +IEnumerable_StorageData GetAll()
       +StorageData MapFromRow(StorageItem row)
       +void DeleteAllBySaveId(int saveId)
       +void Add(StorageData data)
-      +IEnumerable~StorageData~ GetBySaveId(int saveId)
+      +IEnumerable_StorageData GetBySaveId(int saveId)
     }
     StorageRepository --> DBLoader
     StorageRepository --> StorageData`),
@@ -474,7 +474,7 @@ Object.assign(nodes, {
     StorageRepository --> StorageItem`),
   DBLoader: cls("DBLoader", "StreamingAssets의 SQLite DB 파일을 검색하고 연결을 캐싱/복구합니다.", "src/Assets/00_Scripts/DataBase/DBLoader.cs", ["StorageRepository", "GameRepositories"], `classDiagram
     class DBLoader {
-      +Dictionary~string, SQLiteConnection~ dbConnections
+      +Dictionary_string_SQLiteConnection dbConnections
       +void ConnectSQLite()
       +SQLiteConnection GetConnection(string key)
     }
@@ -489,23 +489,23 @@ Object.assign(nodes, {
   PlayerRegionTracker: cls("PlayerRegionTracker", "플레이어가 현재 어느 Region에 있는지 감지하고 변경 이벤트를 발행합니다.", "src/Assets/00_Scripts/Player/Core/PlayerRegionTracker.cs", ["ZoneController", "RegionGraph"], `classDiagram
     class PlayerRegionTracker {
       +Region CurrentRegion
-      +event Action~Region~ OnRegionChanged
+      +event Action_Region OnRegionChanged
       -void SetCurrentRegion(Region region)
     }
     ZoneController --> PlayerRegionTracker`),
   RegionGraph: cls("RegionGraph", "지역과 인접 지역 관계를 데이터로 표현해 Zone Culling의 기준을 제공합니다.", "src/Assets/00_Scripts/ZoneControllers/RegionGraph.cs", ["RegionNodeData", "ZoneController"], `classDiagram
     class RegionGraph {
-      +List~RegionNodeData~ nodes
+      +List_RegionNodeData nodes
     }
     class RegionNodeData {
       +Region region
-      +List~Region~ adjacentRegions
+      +List_Region adjacentRegions
     }
     RegionGraph *-- RegionNodeData`),
   RegionNodeData: cls("RegionNodeData", "한 Region과 해당 Region의 인접 Region 목록을 보관합니다.", "src/Assets/00_Scripts/ZoneControllers/RegionGraph.cs", ["RegionGraph"], `classDiagram
     class RegionNodeData {
       +Region region
-      +List~Region~ adjacentRegions
+      +List_Region adjacentRegions
     }`),
   RegionZoneEntry: cls("RegionZoneEntry", "Inspector에서 Region과 Zone 오브젝트를 연결하기 위한 매핑 엔트리입니다.", "src/Assets/00_Scripts/ZoneControllers/RegionZoneEntry.cs", ["ZoneController", "Zone"], `classDiagram
     class RegionZoneEntry {
@@ -517,12 +517,12 @@ Object.assign(nodes, {
     class ZoneController {
       -PlayerRegionTracker playerRegionTracker
       -RegionGraphSO regionGraph
-      -Dictionary~Region, Zone~ regionZoneMap
-      -HashSet~Region~ activeRegions
-      +event Action~Region, ZoneState~ OnZoneStateChanged
+      -Dictionary_Region_Zone regionZoneMap
+      -HashSet_Region activeRegions
+      +event Action_Region_ZoneState OnZoneStateChanged
       +void SetZoneState(Region region, ZoneState state)
-      +void SetZonesState(IEnumerable~Region~ regions, ZoneState state)
-      -void UpdateZones(HashSet~Region~ nextRegions)
+      +void SetZonesState(IEnumerable_Region regions, ZoneState state)
+      -void UpdateZones(HashSet_Region nextRegions)
     }
     ZoneController --> PlayerRegionTracker
     ZoneController --> RegionGraph
@@ -538,10 +538,9 @@ Object.assign(nodes, {
     Zone --> ZoneState`),
   ZoneState: cls("ZoneState", "Normal, Warning, Restricted 같은 지역 상태를 표현하는 enum입니다.", "src/Assets/00_Scripts/ZoneControllers/ZoneState.cs", ["Zone", "ZoneController"], `classDiagram
     class ZoneState {
-      <<enumeration>>
-      NormalArea
-      WarningArea
-      RestrictedArea
+      +NormalArea
+      +WarningArea
+      +RestrictedArea
     }`),
 });
 
@@ -660,10 +659,7 @@ async function renderGraph(node) {
 }
 
 function withClassClicks(node) {
-  if (!node.graph || !node.graph.trim().startsWith("classDiagram")) return node.graph;
-  const ids = new Set([selectedId, ...(node.classes || [])].filter((id) => nodes[id] && node.graph.includes(id)));
-  const clickLines = [...ids].map((id) => `      click ${id} call selectNode("${id}")`);
-  return `${node.graph}\n${clickLines.join("\n")}`;
+  return node.graph;
 }
 
 function renderFallbackGraph(node, message = "") {
