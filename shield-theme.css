@@ -12,6 +12,13 @@
   --code: #f8fafc;
   --code-text: #1f2937;
   --graph-bg: #fbf7ef;
+  --line-no: #8090a5;
+  --kw: #1d4ed8;
+  --type: #9a5b00;
+  --str: #167245;
+  --com: #718096;
+  --num: #b42318;
+  --method: #0f7f75;
   --code-panel-width: 460px;
   --surface: var(--panel);
   --surface-2: var(--panel-2);
@@ -34,6 +41,13 @@ body.dark-theme {
   --code: #0b0e13;
   --code-text: #d6deeb;
   --graph-bg: #f7f3eb;
+  --line-no: #687386;
+  --kw: #82aaff;
+  --type: #ffcb6b;
+  --str: #c3e88d;
+  --com: #7f8a9d;
+  --num: #f78c6c;
+  --method: #64d2c2;
 }
 
 body { background: var(--bg); color: var(--text); font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif; }
@@ -76,6 +90,7 @@ body { background: var(--bg); color: var(--text); font-family: "Segoe UI", "Noto
 .tree-title::before { content: "▸"; width: 12px; color: var(--accent); }
 .tree-title[aria-expanded="true"]::before { content: "▾"; }
 .tree-group-items[hidden] { display: none; }
+.tree-item[hidden], .tree-group[hidden] { display: none !important; }
 .tree-item { margin: 0; padding: 8px 10px; border: 1px solid transparent; background: transparent; color: var(--text); font-size: 14px; font-weight: 400; }
 .tree-item.child { margin-left: 10px; width: calc(100% - 10px); padding-left: 10px; color: var(--text); }
 .tree-item:hover { border-color: var(--line); background: var(--panel-2); }
@@ -100,6 +115,17 @@ body { background: var(--bg); color: var(--text); font-family: "Segoe UI", "Noto
 .evidence-card { border-color: var(--line); background: var(--panel); color: var(--text); }
 .code-head { padding: 16px; }
 .code-panel pre { height: calc(100vh - 170px); background: var(--code); color: var(--code-text); }
+.code-panel code { color: var(--code-text); }
+.code-panel .line-number { color: var(--line-no); }
+.code-panel .line-code { border-left-color: var(--line); }
+.code-panel .code-line.active-line .line-number,
+.code-panel .code-line.active-line .line-code { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.code-panel .tok-keyword { color: var(--kw); }
+.code-panel .tok-type { color: var(--type); }
+.code-panel .tok-string { color: var(--str); }
+.code-panel .tok-comment { color: var(--com); }
+.code-panel .tok-number { color: var(--num); }
+.code-panel .tok-method { color: var(--method); }
 .code-methods { border-color: var(--line); background: var(--panel); }
 .code-methods button { border-color: var(--line); background: var(--panel-2); color: var(--text); }
 

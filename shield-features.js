@@ -85,9 +85,11 @@ document.addEventListener("DOMContentLoaded", () => {
   applyFilter();
 
   let scale = 1;
+  let zoomResetButton = null;
   const applyScale = () => {
     graph.style.transform = `scale(${scale})`;
     graph.style.width = `${100 / scale}%`;
+    if (zoomResetButton) zoomResetButton.textContent = `${Math.round(scale * 100)}%`;
   };
   if (graphNav) {
     const zoom = document.createElement("div");
@@ -100,11 +102,10 @@ document.addEventListener("DOMContentLoaded", () => {
       button.addEventListener("click", action);
       return button;
     };
-    zoom.append(
-      makeButton("-", "Zoom out", () => { scale = Math.max(.55, scale - .15); applyScale(); }),
-      makeButton("100%", "Reset zoom", () => { scale = 1; applyScale(); }),
-      makeButton("+", "Zoom in", () => { scale = Math.min(2, scale + .15); applyScale(); }),
-    );
+    const zoomOutButton = makeButton("-", "Zoom out", () => { scale = Math.max(.55, scale - .15); applyScale(); });
+    zoomResetButton = makeButton("100%", "Reset zoom", () => { scale = 1; applyScale(); });
+    const zoomInButton = makeButton("+", "Zoom in", () => { scale = Math.min(2, scale + .15); applyScale(); });
+    zoom.append(zoomOutButton, zoomResetButton, zoomInButton);
     graphNav.appendChild(zoom);
   }
 
