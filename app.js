@@ -58,13 +58,13 @@ const nodes = {
     ],
     evidence: [evidence.sceneLifecycle, evidence.itemContainer, evidence.zoneCpu],
     graph: `flowchart TD
-      scene["Scene Lifecycle"]
-      ui["UI Registry"]
-      crafting["Recursive Crafting Tree"]
-      item["Item Container Transaction"]
-      persistence["SQLite Storage Persistence"]
-      zone["RegionGraph Zone Culling"]
-      zoneapi["Zone State API"]
+      scene["씬 생명주기"]
+      ui["UI 레지스트리"]
+      crafting["재귀 제작 트리"]
+      item["아이템 컨테이너 트랜잭션"]
+      persistence["SQLite 저장·불러오기"]
+      zone["지역 기반 Zone 컬링"]
+      zoneapi["Zone 상태 API"]
 
       scene --> ui
       ui --> crafting
@@ -84,7 +84,7 @@ const nodes = {
   }),
 
   "scene-ui-lifecycle": system({
-    title: "Scene Lifecycle & UI Registry",
+    title: "씬 생명주기·UI 레지스트리",
     summary:
       "모든 씬은 SceneController 라이프사이클을 따르고, UI 패널은 UIPanelId 기반 레지스트리로 등록/조회/제어됩니다.",
     intent:
@@ -120,7 +120,7 @@ const nodes = {
   }),
 
   "recursive-crafting-tree": system({
-    title: "Recursive Crafting Tree",
+    title: "재귀 제작 트리 시스템",
     summary:
       "재료가 다시 제작 아이템일 수 있는 다단계 조합식을 레시피 데이터 기반 재귀 트리로 생성하고 런타임 UI로 렌더링합니다.",
     intent:
@@ -155,7 +155,7 @@ const nodes = {
   }),
 
   "item-container-transaction": system({
-    title: "Item Container Transaction",
+    title: "아이템 컨테이너 트랜잭션",
     summary:
       "인벤토리, 창고, 장비창, 루팅창을 IItemContainer와 Adapter로 통합하고 UIItemMoveManager가 이동 트랜잭션을 처리합니다.",
     intent:
@@ -203,7 +203,7 @@ const nodes = {
   }),
 
   "storage-persistence": system({
-    title: "SQLite Storage Persistence",
+    title: "SQLite 저장·불러오기 시스템",
     summary:
       "런타임 Storage 데이터를 저장 시점에 StorageData로 변환하고 SQLite Repository를 통해 세이브 슬롯별로 저장/로드합니다.",
     intent:
@@ -237,7 +237,7 @@ const nodes = {
   }),
 
   "zone-culling": system({
-    title: "RegionGraph Zone Culling",
+    title: "지역 그래프 기반 Zone 컬링",
     summary:
       "PlayerRegionTracker가 감지한 현재 Region과 RegionGraph의 인접 Region만 활성화해 보이지 않는 지역의 런타임 부하를 줄입니다.",
     intent:
@@ -271,7 +271,7 @@ const nodes = {
   }),
 
   "zone-state-api": system({
-    title: "Zone State API",
+    title: "Zone 상태 관리 API",
     summary:
       "금지구역, 이동, 이벤트 같은 지역 기반 기능이 Zone 내부 구현을 몰라도 상태 API로 연결될 수 있도록 경계를 마련했습니다.",
     intent:
@@ -545,11 +545,11 @@ Object.assign(nodes, {
 });
 
 const treeGroups = [
-  { title: "Systems", ids: ["overview", "scene-ui-lifecycle", "recursive-crafting-tree", "item-container-transaction", "storage-persistence", "zone-culling", "zone-state-api"] },
-  { title: "Scene / UI", ids: ["SceneController", "GameSceneManager", "SceneEnterContext", "NewUIManager", "UIPanel", "UIPanelButton"] },
-  { title: "Crafting", ids: ["CraftTreeBuilder", "CraftTreeNode", "CraftTreeRenderer", "CraftingService", "CraftingStorageAdapter"] },
-  { title: "Item Containers", ids: ["IItemContainer", "UIItemMoveManager", "InventoryContainerAdapter", "StorageContainerAdapter", "TargetInventoryContainerAdapter", "EquipmentAdapter", "Storage", "StorageSlot"] },
-  { title: "Persistence / Zone", ids: ["StorageData", "StorageRepository", "StorageItem", "DBLoader", "GameRepositories", "PlayerRegionTracker", "RegionGraph", "RegionNodeData", "RegionZoneEntry", "ZoneController", "Zone", "ZoneState"] },
+  { title: "핵심 시스템", ids: ["overview", "scene-ui-lifecycle", "recursive-crafting-tree", "item-container-transaction", "storage-persistence", "zone-culling", "zone-state-api"] },
+  { title: "씬·UI 클래스", ids: ["SceneController", "GameSceneManager", "SceneEnterContext", "NewUIManager", "UIPanel", "UIPanelButton"] },
+  { title: "제작 시스템 클래스", ids: ["CraftTreeBuilder", "CraftTreeNode", "CraftTreeRenderer", "CraftingService", "CraftingStorageAdapter"] },
+  { title: "아이템 컨테이너 클래스", ids: ["IItemContainer", "UIItemMoveManager", "InventoryContainerAdapter", "StorageContainerAdapter", "TargetInventoryContainerAdapter", "EquipmentAdapter", "Storage", "StorageSlot"] },
+  { title: "저장·지역 관리 클래스", ids: ["StorageData", "StorageRepository", "StorageItem", "DBLoader", "GameRepositories", "PlayerRegionTracker", "RegionGraph", "RegionNodeData", "RegionZoneEntry", "ZoneController", "Zone", "ZoneState"] },
 ];
 
 let selectedId = "overview";
