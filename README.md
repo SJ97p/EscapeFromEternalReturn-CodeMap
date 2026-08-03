@@ -14,6 +14,7 @@ Unity 기반 생존 액션 RPG 프로젝트 **Escape From Eternal Return**에서
 | Item | Description |
 |---|---|
 | Project | Escape From Eternal Return |
+| Development Period | 2026.04.17 ~ 2026.05.26 |
 | Engine / Language | Unity / C# |
 | Team | 3인 팀 프로젝트 |
 | My Focus | Runtime Architecture, Scene/UI Flow, Inventory Transaction, SQLite Persistence, Region Culling |
