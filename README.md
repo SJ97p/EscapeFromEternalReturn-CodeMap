@@ -1,5 +1,7 @@
 # Escape From Eternal Return Code Map
 
+![Escape From Eternal Return title](assets/evidence/escape-from-eternal-return-title.png)
+
 Unity 기반 생존 액션 RPG 프로젝트 **Escape From Eternal Return**에서 제가 담당한 런타임 시스템 구조를 정리한 포트폴리오용 Code Map입니다.
 
 이 저장소는 전체 Unity 프로젝트를 공개하기보다, 제가 설계하고 구현한 **씬 라이프사이클, UI 레지스트리, 제작 트리, 아이템 컨테이너, SQLite 저장/로드, RegionGraph 기반 Zone Culling** 구조를 중심으로 설명합니다.
