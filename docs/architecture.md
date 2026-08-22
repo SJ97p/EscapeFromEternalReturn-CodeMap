@@ -13,7 +13,7 @@ flowchart TD
     Scene --> UI[NewUIManager / UIPanel Registry]
     UI --> Panels[Inventory / Equipment / Storage / Craft UI]
 
-    Recipe[Craft Recipe DB] --> Tree[Recursive CraftTreeBuilder]
+    Recipe[ScriptableObject Recipe Data] --> Tree[Recursive CraftTreeBuilder]
     Tree --> CraftUI[CraftTreeRenderer]
     Tree --> CraftService[CraftingService]
 

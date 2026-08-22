@@ -2,11 +2,11 @@
 
 ## Problem
 
-전체 월드의 모든 지역, 몬스터, 상자 오브젝트를 항상 활성화하면 플레이어가 보지 않는 영역까지 Update와 렌더링 비용이 발생합니다. 월드 규모가 커질수록 이 비용은 누적됩니다.
+맵 에셋이 넓고 무거운 상태에서 몬스터와 상자 같은 런타임 요소까지 함께 늘어나면, 전 지역을 항상 활성 상태로 두는 구조는 이후 Update 비용을 키울 수 있다고 판단했습니다. 여기서 해결하려던 것은 렌더러가 그릴 대상을 거르는 프러스텀 컬링이 아니라, 지역 GameObject 자체의 런타임 활성 범위를 관리하는 일이었습니다.
 
 ## Solution
 
-월드를 `Region` 단위의 `Zone`으로 분리하고, `PlayerRegionTracker`가 감지한 현재 지역을 기준으로 `RegionGraph`에서 인접 지역을 조회합니다. `ZoneController`는 현재 지역과 인접 지역만 `activeRegions`로 유지하고, 이전 활성 지역과 다음 활성 지역의 차집합만 계산해 GameObject 활성 상태를 변경합니다.
+월드를 `Region` 단위의 `Zone`으로 분리하고, `PlayerRegionTracker`가 플레이어 하단에서 바닥 Collider를 감지해 현재 지역을 알아냅니다. 이후 `RegionGraph`에서 인접 지역을 조회하고, `ZoneController`는 현재 지역과 인접 지역만 `activeRegions`로 유지합니다. 이전 활성 집합과 다음 집합의 차이만 계산해 각 Zone GameObject에 `SetActive`를 적용합니다.
 
 ## Flow
 
@@ -27,7 +27,7 @@ sequenceDiagram
 
 ## Pattern / Stack
 
-- Graph-based Culling: RegionGraph로 인접 지역 계산
+- RegionGraph 기반 런타임 활성화: RegionGraph로 인접 지역 계산 후 Zone GameObject 활성 상태 제어
 - Set Difference Optimization: `HashSet.ExceptWith`로 활성/비활성 대상만 계산
 - Data-driven World Partition: Zone과 RegionGraph 데이터 기반 월드 분할
 - Flyweight Direction: 공통 지역 설정을 ScriptableObject로 분리하면 중복 상태를 더 줄일 수 있음
@@ -42,5 +42,4 @@ sequenceDiagram
 
 ## Portfolio Point
 
-전체 월드를 항상 켜두지 않고 현재 지역과 인접 지역만 활성화합니다. 거리별 비활성화 기준으로 Update CPU 비용이 평균 약 2.0ms 감소했고, 평균 기준 약 42% 최적화되었습니다.
-
+전체 월드를 항상 켜두지 않고 현재 지역과 인접 지역만 활성화합니다. 에디터에서 측정한 해당 장면의 Update CPU 값은 약 4.75ms에서 2.75ms로 감소했습니다. 이 결과는 모든 장면에 일반화한 수치가 아니라, 구조 변경 전후를 같은 환경에서 비교한 근거입니다.

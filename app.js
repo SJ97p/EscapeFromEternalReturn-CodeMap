@@ -14,7 +14,7 @@ const evidence = {
   craftingTree: {
     src: "assets/evidence/crafting-tree.gif",
     caption:
-      "레시피 데이터를 기반으로 CraftTreeBuilder가 재귀 제작 트리를 생성하고, UI는 생성된 CraftTreeNode 구조를 렌더링하는 역할만 담당하도록 분리했습니다.",
+      "ScriptableObject 레시피로 전체 재료 트리를 먼저 만들고, UI는 완성된 CraftTreeNode 구조를 출력하도록 분리했습니다.",
   },
   itemContainer: {
     src: "assets/evidence/item-container-transaction.gif",
@@ -122,15 +122,15 @@ const nodes = {
   "recursive-crafting-tree": system({
     title: "재귀 제작 트리 시스템",
     summary:
-      "재료가 다시 제작 아이템일 수 있는 다단계 조합식을 레시피 데이터 기반 재귀 트리로 생성하고 런타임 UI로 렌더링합니다.",
+      "최상위 아이템부터 최하위 재료까지 ScriptableObject 레시피 기반 재귀 트리로 완성한 뒤 런타임 UI에 출력합니다.",
     intent:
-      "UI는 계산을 하지 않고 출력만 담당해야 한다고 보았습니다. 레시피를 기반으로 데이터 단에서 제작 트리를 완성한 뒤, UI는 완성된 CraftTreeNode 구조만 렌더링하도록 책임을 분리했습니다.",
+      "최상위 아이템을 눌렀을 때 최하위 재료까지 끊기지 않고 보여주고 싶었습니다. 그래서 UI가 탐색 과정에 개입하지 않고, ScriptableObject 레시피를 따라 데이터 단에서 제작 트리를 먼저 완성한 뒤 UI는 완성된 CraftTreeNode 구조만 출력하도록 책임을 분리했습니다.",
     decision:
-      "재료가 다시 제작 아이템일 수 있다는 요구사항이 처음부터 있었기 때문에 재귀 탐색이 필요했습니다. 구현 과정에서 가장 큰 도전은 Unity 기능보다 실제 데이터를 알고리즘 구조로 녹여내는 일이었습니다.",
+      "상위 아이템의 재료도 다시 제작 아이템일 수 있다는 요구사항 때문에 재귀 탐색이 필요했습니다. 트리를 먼저 만든 뒤 화면에 전달하는 방식을 선택해, 제작 규칙과 UI 갱신이 서로 얽히지 않도록 했습니다.",
     final:
       "CraftTreeBuilder는 레시피 데이터를 탐색해 트리 축을 만들고, CraftTreeNode는 각 노드 정보를 담으며, CraftTreeRenderer는 UI 출력만 담당합니다. CraftingService는 외부 요청을 받아 제작 가능 여부와 부족 재료 계산을 제공합니다.",
     next:
-      "레시피는 직접 관리하는 데이터였기 때문에 순환 레시피 방지나 중복 재료 캐싱은 구현하지 않았습니다. 이후 데이터 규모가 커지거나 외부 편집이 가능해진다면 순환 검증, 중복 합산 캐싱, 레시피 유효성 검사를 추가할 수 있습니다.",
+      "레시피는 ScriptableObject로 관리했습니다. 현재 범위에서는 순환 레시피 방지나 중복 재료 캐싱까지 구현하지 않았으며, 데이터 규모가 커진다면 순환 검증과 편집 단계 유효성 검사를 추가할 수 있습니다.",
     classes: ["CraftTreeBuilder", "CraftTreeNode", "CraftTreeRenderer", "CraftingService", "CraftingStorageAdapter"],
     evidence: [evidence.craftingTree],
     graph: `flowchart TD
@@ -159,7 +159,7 @@ const nodes = {
     summary:
       "인벤토리, 창고, 장비창, 루팅창을 IItemContainer와 Adapter로 통합하고 UIItemMoveManager가 이동 트랜잭션을 처리합니다.",
     intent:
-      "기존 인벤토리 시스템은 자동 루팅과 패널 열기/닫기처럼 인벤토리 하나의 동작에는 맞춰져 있었지만, 창고, 장비창, 루팅창, 제작대까지 확장하기에는 닫혀 있었습니다. 서로 다른 저장소라도 아이템을 보관하고 슬롯을 갱신한다는 공통점은 같다고 판단했습니다.",
+      "기존에 따로 만들어진 인벤토리·장비창·루팅창에 창고를 붙이려 하자 수정 범위가 너무 넓어졌습니다. 서로 다른 저장소라도 아이템을 보관하고 슬롯을 갱신한다는 공통점은 같다고 판단했습니다.",
     decision:
       "각 컨테이너는 크기와 규칙이 달랐습니다. 장비창은 장비 타입 검증이 필요했고, 창고와 루팅창은 이동 우선순위가 달랐습니다. 그래서 IItemContainer로 CRUD와 Refresh 규격을 정의하고, 각 UI는 Adapter로 자신의 규칙을 공통 인터페이스에 맞추도록 했습니다.",
     final:
@@ -207,7 +207,7 @@ const nodes = {
     summary:
       "런타임 Storage 데이터를 저장 시점에 StorageData로 변환하고 SQLite Repository를 통해 세이브 슬롯별로 저장/로드합니다.",
     intent:
-      "Unity에서 직접 사용하기 편한 내장형 데이터베이스로 SQLite를 선택했습니다. 런타임 Storage와 저장용 StorageData를 분리해 저장 데이터의 무결성을 유지하고, 세이브 슬롯 단위로 저장/로드되도록 만들고자 했습니다.",
+      "제작 레시피는 ScriptableObject로 관리하고, 플레이어의 인벤토리·창고·장비 상태만 SQLite 세이브로 저장했습니다. 런타임 Storage와 저장용 StorageData를 분리해 세이브 슬롯 단위로 복원하고자 했습니다.",
     decision:
       "빈 슬롯은 저장하지 않고, 아이템이 존재하는 슬롯의 storageType, saveId, itemId, quantity, x, y를 저장했습니다. DB 접근은 StorageRepository로 모으고, DBLoader는 연결이 끊겼을 때 복구할 수 있는 연결 지점을 담당하도록 했습니다.",
     final:
@@ -237,15 +237,15 @@ const nodes = {
   }),
 
   "zone-culling": system({
-    title: "지역 그래프 기반 Zone 컬링",
+    title: "지역 그래프 기반 런타임 활성화",
     summary:
-      "PlayerRegionTracker가 감지한 현재 Region과 RegionGraph의 인접 Region만 활성화해 보이지 않는 지역의 런타임 부하를 줄입니다.",
+      "PlayerRegionTracker가 감지한 현재 Region과 RegionGraph의 인접 Region만 SetActive로 유지해, 전 지역을 계속 활성 상태로 두지 않도록 관리합니다.",
     intent:
       "맵과 오브젝트 수가 많고 몬스터와 상자 스폰도 존재했기 때문에, 플레이어가 보지 않는 지역까지 항상 활성화하는 구조는 피하고자 했습니다. 광활한 맵을 탐색하는 느낌은 유지하면서 메모리와 Update 비용을 줄이는 것이 목표였습니다.",
     decision:
-      "RegionGraph를 ScriptableObject 기반 데이터로 두어 지역 추가나 인접 관계 수정이 쉬운 구조로 만들었습니다. PlayerRegionTracker는 플레이어 하단 방향으로 바닥 Collider를 감지해 현재 Region을 얻고, ZoneController는 현재 지역과 인접 지역만 활성 집합으로 유지합니다.",
+      "이 시스템은 렌더링 컬링이 아니라 지역 GameObject의 런타임 활성 상태를 관리합니다. RegionGraph를 ScriptableObject 기반 데이터로 두고, PlayerRegionTracker가 플레이어 하단의 바닥 Collider에서 현재 Region을 얻으면 ZoneController가 현재 지역과 인접 지역에만 SetActive를 적용합니다.",
     final:
-      "activeRegions는 HashSet으로 관리해 중복을 제거하고 포함 여부 검사를 빠르게 처리합니다. 적용 후 평균 CPU 사용량은 약 4.75ms에서 2.75ms로 감소했고, 평균 기준 약 42.1% 개선을 확인했습니다.",
+      "activeRegions는 HashSet으로 관리해 중복을 제거하고 포함 여부 검사를 빠르게 처리합니다. 에디터에서 같은 장면을 비교했을 때 Update CPU 값은 약 4.75ms에서 2.75ms로 감소했습니다. 이는 이 장면에서 구조 변경 전후를 비교한 결과입니다.",
     next:
       "Zone 비활성화 자체는 문제없이 동작했지만, 이후에는 Zone 활성/비활성 이벤트를 두고 몬스터와 상자가 이를 구독하는 방식으로 바꾸면 결합도를 더 낮출 수 있습니다.",
     classes: ["PlayerRegionTracker", "RegionGraph", "RegionNodeData", "RegionZoneEntry", "ZoneController", "Zone", "ZoneState"],

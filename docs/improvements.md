@@ -18,7 +18,7 @@
 
 ## Flyweight Direction
 
-현재 구현은 Flyweight 패턴이 직접 적용되었다기보다, 적용하기 좋은 구조에 가깝습니다. `RegionGraphSO`, `ZoneMonsterSpawnTable`, 아이템/레시피 DB처럼 여러 Zone이 공유하는 데이터를 ScriptableObject 기반 불변 데이터로 분리하면 Zone 인스턴스별 중복 상태를 줄일 수 있습니다.
+현재 구현은 Flyweight 패턴이 직접 적용되었다기보다, 적용하기 좋은 구조에 가깝습니다. `RegionGraphSO`, `ZoneMonsterSpawnTable`, 아이템/레시피 ScriptableObject처럼 여러 Zone이 공유하는 데이터를 불변 데이터로 분리하면 Zone 인스턴스별 중복 상태를 줄일 수 있습니다.
 
 ## Encoding Cleanup
 

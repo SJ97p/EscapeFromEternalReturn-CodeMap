@@ -4,7 +4,7 @@
 
 Unity 기반 생존 액션 RPG 프로젝트 **Escape From Eternal Return**에서 제가 담당한 런타임 시스템 구조를 정리한 포트폴리오용 Code Map입니다.
 
-이 저장소는 전체 Unity 프로젝트를 공개하기보다, 제가 설계하고 구현한 **씬 라이프사이클, UI 레지스트리, 제작 트리, 아이템 컨테이너, SQLite 저장/로드, RegionGraph 기반 Zone Culling** 구조를 중심으로 설명합니다.
+이 저장소는 전체 Unity 프로젝트를 공개하기보다, 기능을 하나 더 붙일 때마다 수정 범위가 넓어지던 문제를 어떻게 줄였는지 보여주기 위해 만들었습니다. 제가 설계·구현한 **제작 트리, 아이템 컨테이너, SQLite 저장/로드, RegionGraph 기반 런타임 Zone 활성화** 구조를 중심으로 설명합니다.
 
 - [Interactive GitHub Pages](https://sj97p.github.io/EscapeFromEternalReturn-CodeMap/)
 - [Architecture Overview](docs/architecture.md)
@@ -24,7 +24,7 @@ Unity 기반 생존 액션 RPG 프로젝트 **Escape From Eternal Return**에서
 
 ## My Role
 
-이번 프로젝트에서 저는 개별 기능보다 **기능들이 서로 안정적으로 연결되는 구조**를 만드는 데 집중했습니다.
+이번 프로젝트에서 가장 크게 마주한 문제는, 기존에 분리되어 만들어진 장비창·인벤토리·루팅창에 창고를 추가하려 할 때였습니다. 한 기능을 고칠 때 참조해야 하는 코드가 너무 많았고, 빠른 기능 추가가 오히려 다음 변경을 어렵게 만들고 있었습니다. 그래서 개별 기능보다 **기능들이 서로 안정적으로 연결되고 확장되는 구조**를 만드는 데 집중했습니다.
 
 - 모든 씬이 공통 `SceneController` 라이프사이클을 따르도록 설계
 - `GameSceneManager`와 `SceneEnterContext`로 씬 전환과 데이터 전달 중앙화
@@ -53,7 +53,7 @@ Unity 기반 생존 액션 RPG 프로젝트 **Escape From Eternal Return**에서
 
 ![Recursive Crafting Tree](assets/evidence/crafting-tree.gif)
 
-레시피 데이터를 기반으로 `CraftTreeBuilder`가 재귀 제작 트리를 생성하고, UI는 생성된 `CraftTreeNode` 구조를 렌더링하는 역할만 담당하도록 분리했습니다.
+최상위 아이템을 선택했을 때 최하위 재료까지 한 번에 보여주기 위해, ScriptableObject 레시피 데이터를 먼저 재귀 트리로 완성한 뒤 UI가 이를 출력하도록 분리했습니다.
 
 ### 4. Item Container Transaction
 
@@ -65,23 +65,23 @@ Unity 기반 생존 액션 RPG 프로젝트 **Escape From Eternal Return**에서
 
 ![Zone Culling](assets/evidence/zone-culling.gif)
 
-`PlayerRegionTracker`가 현재 Region을 감지하면, `ZoneController`가 `RegionGraph`를 기준으로 현재 지역과 인접 지역만 ActiveZone으로 유지합니다.
+`PlayerRegionTracker`가 현재 Region을 감지하면, `ZoneController`가 `RegionGraph`를 기준으로 현재 지역과 인접 지역만 런타임에서 활성 상태로 유지합니다. 이는 렌더링 컬링이 아니라 해당 Region GameObject의 `SetActive`를 제어하는 구조입니다.
 
 ### 6. CPU Optimization Result
 
 ![Zone CPU Result](assets/evidence/zone-cpu-result.png)
 
-Zone Culling 적용 후 평균 CPU 사용량은 약 **4.75ms에서 2.75ms**로 감소했으며, 평균 기준 약 **42.1% 개선**을 확인했습니다.
+에디터 환경에서 Zone 활성 범위를 제한한 뒤 Update CPU 측정값이 약 **4.75ms에서 2.75ms**로 감소했습니다. 이 수치는 해당 장면과 환경에서 확인한 비교 결과입니다.
 
 ## Core Systems
 
 | System | Design Intent | Result |
 |---|---|---|
 | Scene Lifecycle & UI Registry | 씬 전환과 UI 호출 흐름을 씬/패널마다 흩어지지 않게 중앙화 | `SceneController`, `GameSceneManager`, `UIPanelId`, `NewUIManager` |
-| Recursive Crafting Tree | UI는 출력만 담당하고, 제작 구조는 데이터 기반 재귀 트리로 처리 | `CraftTreeBuilder`, `CraftTreeNode`, `CraftingService` |
+| Recursive Crafting Tree | ScriptableObject 레시피로 전체 재료 트리를 먼저 만들고 UI는 완성된 결과를 출력 | `CraftTreeBuilder`, `CraftTreeNode`, `CraftingService` |
 | Item Container Transaction | 인벤토리, 창고, 장비창, 루팅창의 공통 슬롯 조작 규격 정의 | `IItemContainer`, Adapter, `UIItemMoveManager` |
 | SQLite Persistence | 런타임 슬롯 모델과 저장 DTO를 분리해 세이브 슬롯별 저장/로드 처리 | `Storage`, `StorageData`, `StorageRepository`, `DBLoader` |
-| RegionGraph Zone Culling | 현재 지역과 인접 지역만 활성화해 보이지 않는 지역의 비용 감소 | `PlayerRegionTracker`, `RegionGraph`, `ZoneController` |
+| RegionGraph Zone Culling | 현재 지역과 인접 지역만 `SetActive`로 유지해 불필요한 런타임 활성 상태를 줄임 | `PlayerRegionTracker`, `RegionGraph`, `ZoneController` |
 | Zone State API | 지역 기반 협업 기능이 붙을 수 있는 상태 API와 이벤트 확장 지점 제공 | `SetZoneState`, `SetZonesState`, `OnZoneStateChanged` |
 
 ## Design Notes
@@ -95,15 +95,13 @@ Zone Culling 적용 후 평균 CPU 사용량은 약 **4.75ms에서 2.75ms**로 �
 
 ### Crafting
 
-재료가 다시 제작 아이템일 수 있는 구조였기 때문에 재귀 탐색이 필요했습니다.  
-`CraftTreeBuilder`는 레시피를 탐색해 트리 축을 만들고, `CraftTreeRenderer`는 UI 출력만 담당하도록 분리했습니다.
+이터널 리턴의 제작 흐름처럼 최상위 아이템을 조회했을 때 최하위 재료까지 보여주는 것을 목표로 했습니다. 재료가 다시 제작 아이템일 수 있으므로 재귀 탐색이 필요했고, 화면을 탐색 과정마다 조금씩 갱신하기보다 `CraftTreeBuilder`가 ScriptableObject 레시피에서 트리를 먼저 완성한 뒤 `CraftTreeRenderer`가 출력하도록 나눴습니다.
 
-레시피는 직접 관리하는 데이터였기 때문에 순환 레시피 방지나 중복 재료 캐싱은 구현하지 않았습니다. 이후 데이터 규모가 커지거나 외부 편집이 가능해진다면 검증 로직을 추가할 수 있습니다.
+레시피는 ScriptableObject로 관리했습니다. 현재 범위에서는 순환 레시피 방지나 중복 재료 캐싱까지 구현하지 않았으며, 데이터 규모가 커진다면 편집 단계의 유효성 검사와 캐싱을 추가할 여지가 있습니다.
 
 ### Zone Culling
 
-맵과 오브젝트 수가 많고 몬스터와 상자 스폰도 존재했기 때문에, 플레이어가 보지 않는 지역까지 항상 활성화하는 구조는 피하고자 했습니다.  
-`RegionGraph`를 데이터 기반으로 관리하고, 현재 지역과 인접 지역만 활성화하는 방식으로 Update 비용을 줄였습니다.
+맵 에셋이 넓고 무거운 상태에서 몬스터·상자 등 런타임 요소까지 늘어나면, 전 지역을 계속 활성 상태로 유지하는 방식은 이후 비용이 커질 수 있다고 보았습니다. `RegionGraph`를 데이터로 두고, 현재 지역과 인접 지역만 `SetActive(true)`로 유지하는 방식으로 런타임 활성 범위를 제한했습니다. 이는 렌더링 프러스텀 컬링이 아니라 GameObject 활성화 제어입니다.
 
 `OnZoneStateChanged` 이벤트는 확장 지점으로 제공했지만, 현재 코드맵 스냅샷 기준으로 외부 클래스가 직접 구독한 코드는 확인되지 않습니다. 따라서 포트폴리오에서는 “구독 가능한 API를 제공했다”로 표현합니다.
 
