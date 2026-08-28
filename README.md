@@ -6,16 +6,12 @@ Unity 기반 생존 액션 RPG 프로젝트 **Escape From Eternal Return**에서
 
 이 저장소는 전체 Unity 프로젝트를 공개하기보다, 기능을 하나 더 붙일 때마다 수정 범위가 넓어지던 문제를 어떻게 줄였는지 보여주기 위해 만들었습니다. 제가 설계·구현한 **제작 트리, 아이템 컨테이너, SQLite 저장/로드, RegionGraph 기반 런타임 Zone 활성화** 구조를 중심으로 설명합니다.
 
-- [Interactive GitHub Pages](https://sj97p.github.io/EscapeFromEternalReturn-CodeMap/)
-- [Architecture Overview](docs/architecture.md)
-- [Class Diagram](docs/class-diagram.md)
-- [Source Snapshot](src/Assets/00_Scripts)
-
 ## 바로가기
 
 [![인터랙티브 코드맵](assets/navigation/code-map-link.svg)](https://sj97p.github.io/EscapeFromEternalReturn-CodeMap/)
 
 > 이미지를 클릭하면 Escape From Eternal Return의 시스템 구조와 기술 문서로 이동합니다.
+
 ## Project Summary
 
 | Item | Description |
@@ -25,7 +21,7 @@ Unity 기반 생존 액션 RPG 프로젝트 **Escape From Eternal Return**에서
 | Engine / Language | Unity / C# |
 | Team | 3인 팀 프로젝트 |
 | My Focus | Runtime Architecture, Scene/UI Flow, Inventory Transaction, SQLite Persistence, Region Culling |
-| Portfolio Goal | 기능 나열보다 설계 의도, 구조적 고민, 결과 증거를 보여주는 것 |
+| Portfolio Goal | 시스템 구조와 설계 의도를 보여주는 것 |
 
 ## My Role
 
@@ -142,4 +138,6 @@ Unity 기반 생존 액션 RPG 프로젝트 **Escape From Eternal Return**에서
 1. 빠르게 결과를 보고 싶다면 README의 Visual Evidence를 먼저 확인합니다.
 2. 구조 흐름을 보고 싶다면 [Interactive GitHub Pages](https://sj97p.github.io/EscapeFromEternalReturn-CodeMap/)에서 UML 노드를 클릭합니다.
 3. 설계 의도와 세부 구현을 함께 보고 싶다면 GitHub Pages의 `설계 의도`, `고려한 문제와 선택`, `최종 구조`, `Evidence`, `Code Preview`를 순서대로 확인합니다.
+
+
 
