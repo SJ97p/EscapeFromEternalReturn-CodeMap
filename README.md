@@ -11,6 +11,11 @@ Unity 기반 생존 액션 RPG 프로젝트 **Escape From Eternal Return**에서
 - [Class Diagram](docs/class-diagram.md)
 - [Source Snapshot](src/Assets/00_Scripts)
 
+## 바로가기
+
+[![인터랙티브 코드맵](assets/navigation/code-map-link.svg)](https://sj97p.github.io/EscapeFromEternalReturn-CodeMap/)
+
+> 이미지를 클릭하면 Escape From Eternal Return의 시스템 구조와 기술 문서로 이동합니다.
 ## Project Summary
 
 | Item | Description |
@@ -137,3 +142,4 @@ Unity 기반 생존 액션 RPG 프로젝트 **Escape From Eternal Return**에서
 1. 빠르게 결과를 보고 싶다면 README의 Visual Evidence를 먼저 확인합니다.
 2. 구조 흐름을 보고 싶다면 [Interactive GitHub Pages](https://sj97p.github.io/EscapeFromEternalReturn-CodeMap/)에서 UML 노드를 클릭합니다.
 3. 설계 의도와 세부 구현을 함께 보고 싶다면 GitHub Pages의 `설계 의도`, `고려한 문제와 선택`, `최종 구조`, `Evidence`, `Code Preview`를 순서대로 확인합니다.
+
