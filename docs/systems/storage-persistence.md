@@ -1,42 +1,33 @@
-# Storage Persistence
+# 탐험에서 가져온 아이템을 다음 출발까지 남기는 저장 구조
 
-## Problem
+## 저장 대상은 레시피가 아니라 플레이어가 정리한 전리품이었습니다
 
-제작 레시피는 ScriptableObject로 관리했지만, 플레이어의 창고·장비창·인벤토리 상태는 세이브 파일에서 다시 불러와야 했습니다. 런타임 아이템 저장소는 2차원 슬롯 배열로 관리되지만, SQLite 저장 구조는 세이브 슬롯, 컨테이너 타입, 아이템 ID, 수량, 좌표가 필요합니다. 런타임 모델을 그대로 DB에 묶으면 UI/게임 로직과 저장 구조가 강하게 결합됩니다.
+제작 레시피는 ScriptableObject로 관리했습니다. 반면 플레이어가 탈출 후 직접 정리한 인벤토리·창고·장비창 상태는 다음 실행에서도 그대로 남아야 했습니다. 런타임에서는 2차원 슬롯 배열이 편하지만, SQLite에는 어느 세이브 슬롯의 어느 저장공간에 어떤 아이템이 몇 개, 어느 좌표에 있는지가 필요합니다.
 
-## Solution
+그래서 런타임 `Storage`를 SQLite row와 직접 묶지 않고, 저장 시점에만 `StorageData`로 바꾸기로 했습니다.
 
-`Storage`는 런타임에서 `StorageSlot[,]` 배열로 슬롯을 관리하고, 저장 시점에 비어있지 않은 슬롯만 `StorageData` DTO로 변환합니다. `StorageRepository`는 `StorageData`와 SQLite 테이블 row 사이의 매핑을 담당하고, `DBLoader`는 DB 파일 검색, 연결 캐싱, 닫힌 연결 복구를 처리합니다.
+## 세 저장공간을 세이브 슬롯으로 내보내고 복원했습니다
 
-## Flow
+`NewStorageManager`는 인벤토리(5×2), 창고(7×10), 장비창(5×1)을 각각 런타임 `Storage`로 관리합니다. 저장할 때는 비어 있지 않은 슬롯만 `StorageData`로 변환하고, 인벤토리·창고·장비창이라는 `StorageType`과 세이브 ID, 아이템 ID, 수량, X/Y 좌표를 함께 남깁니다.
+
+`SaveManager`는 현재 세이브 슬롯의 기존 저장 데이터를 지운 뒤, 새로 모은 `StorageData`를 `StorageRepository`를 통해 SQLite에 다시 넣습니다. 불러올 때는 세이브 ID로 데이터를 가져와 `StorageType`별로 세 런타임 저장공간에 분배합니다.
 
 ```mermaid
-flowchart TD
-    Runtime[StorageSlot Runtime Grid] --> Export[ExportToStorageData]
-    Export --> Filter[Skip Empty Slots]
-    Filter --> DTO[StorageData]
-    DTO --> Repository[StorageRepository]
-    Repository --> Row[StorageItem Row]
-    Row --> SQLite[(SQLite DB)]
-    SQLite --> Load[GetBySaveId]
-    Load --> Runtime
+flowchart LR
+    Runtime[인벤토리 / 창고 / 장비창] --> Export[비어 있지 않은 슬롯만 Export]
+    Export --> DTO[StorageData]
+    DTO --> Repo[StorageRepository]
+    Repo --> DB[(SQLite 세이브 슬롯)]
+    DB --> Load[SaveId로 조회]
+    Load --> Restore[StorageType별 런타임 Storage 복원]
 ```
 
-## Pattern / Stack
+## 코드에서 확인할 수 있는 지점
 
-- Repository Pattern: SQLite 접근을 `StorageRepository`로 캡슐화
-- DTO Mapping: 런타임 `StorageSlot`과 저장용 `StorageData` 분리
-- Data Minimization: 비어있지 않은 슬롯만 저장
-- Connection Cache: `DBLoader`가 DB 파일 목록과 연결을 관리
+- `NewStorageManager`: 세 런타임 저장공간 생성과 저장/복원 연결
+- `Storage.ExportToStorageData`: 슬롯 배열에서 저장 DTO 생성
+- `SaveManager`: 현재 세이브 슬롯 저장·로드 흐름 관리
+- `StorageRepository`: `StorageData`와 SQLite `StorageItem` row 변환
+- `StorageRepository.GetBySaveId`: 세이브 슬롯 단위 조회
 
-## Code Points
-
-- `Storage.ExportToStorageData`: 저장 시점 DTO 변환
-- `StorageData`: 저장 슬롯의 타입, 세이브 ID, 아이템 ID, 수량, 좌표 보관
-- `StorageRepository.Add`: DTO를 SQLite row로 변환 후 저장
-- `StorageRepository.GetBySaveId`: 특정 세이브 슬롯 데이터만 로드
-- `DBLoader.GetConnection`: 연결 캐싱과 재연결 처리
-
-## Portfolio Point
-
-저장 구조는 런타임 UI와 분리되어 있습니다. 저장 시점에 필요한 데이터만 추출하므로 세이브 슬롯별 저장·삭제·로드를 Repository 단위로 다룰 수 있습니다. 즉, 제작 규칙을 저장 DB에 의존시키지 않고도 플레이어가 가진 컨테이너 상태만 독립적으로 복원할 수 있게 했습니다.
+이렇게 레시피 데이터와 플레이어 보유 상태를 분리해 두었기 때문에, 제작 규칙은 저장 DB에 의존하지 않고도 플레이어가 가져온 전리품만 독립적으로 복원할 수 있습니다.

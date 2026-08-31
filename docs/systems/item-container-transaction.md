@@ -1,47 +1,53 @@
-# Item Container Transaction
+# 아이템 이동을 다시 설계한 이유
 
-## Problem
+## 이 기능은 창고 하나에서 시작했습니다
 
-이 문서는 이미 따로 만들어져 있던 장비창·인벤토리·루팅창에 창고를 추가하려 할 때 시작되었습니다. 창 하나를 더 붙이려 해도 수정해야 할 참조와 이동 규칙이 너무 많아, 기능이 늘수록 다음 변경이 어려워지는 구조라고 느꼈습니다. 화면 형태와 세부 규칙은 달라도 결국 “슬롯에서 아이템을 꺼내 다른 슬롯에 넣는다”는 공통 흐름은 같았습니다.
+이 게임에서 아이템은 탐험 중 얻은 전리품이자 다음 출발을 준비하는 자산입니다. 그래서 창고를 넣으려 했지만, 기존 인벤토리·장비·루팅 코드는 서로의 구체 클래스를 직접 참조하고 있었습니다. 창고 하나를 더하려면 화면마다 이동 규칙을 새로 붙여야 했고, 퀵무브·장착·교체를 추가할수록 수정할 곳이 늘어났습니다.
 
-## Solution
+저는 저장공간의 모양이 아니라 “한 슬롯에서 아이템을 읽어 다른 슬롯으로 옮긴다”는 공통 흐름을 먼저 정리하기로 했습니다.
 
-모든 컨테이너를 `IItemContainer` 인터페이스로 통일하고, 각 UI/데이터 모델은 Adapter를 통해 같은 슬롯 조작 API를 제공합니다. `UIItemMoveManager`는 구체 UI 타입을 직접 알지 않고, 인터페이스만 사용해 이동 가능 여부 검증, 스택 병합, 스왑, 자동 이동, 장비 슬롯 검증, UI 갱신을 처리합니다.
-
-## Transaction Flow
-
-```mermaid
-flowchart TD
-    Drag[Drag / Click] --> Resolve[Resolve Container]
-    Resolve --> Validate[Validate Slot]
-    Validate --> Merge{Can Merge?}
-    Merge -->|Yes| CommitMerge[Commit Merge]
-    Merge -->|No| Equip{Equipment Validation?}
-    Equip --> Move{Can Move / Swap?}
-    Move --> Commit[Commit Move]
-    Commit --> Rollback{Failure?}
-    Rollback -->|Yes| Restore[Rollback Slot]
-    Rollback -->|No| Refresh[Refresh UI]
+```text
+기존: 컨테이너마다 상대 컨테이너를 직접 참조
+문제: 새 공간과 이동 규칙이 늘 때마다 수정 범위 확대
+판단: 공통 이동 규격과 컨테이너별 제약을 분리
 ```
 
-## Pattern / Stack
+## 공통 규칙과 각 공간의 차이
 
-- Adapter Pattern: 서로 다른 UI/데이터 모델을 `IItemContainer`로 맞춤
-- Mediator / Facade: `UIItemMoveManager`가 컨테이너 간 이동을 중앙 조율
-- Transaction-like Commit: 검증 후 쓰기, 실패 시 롤백
-- Rule Priority: 열려 있는 UI 상태와 아이템 타입에 따라 자동 이동 목적지 결정
+`IItemContainer`에는 좌표 검증, 비어 있음 확인, 아이템/수량 조회, 슬롯 설정·비우기, 클릭·드롭, UI 갱신을 담았습니다. 인벤토리·루팅·창고·장비창은 모두 이 규격으로 이동 요청을 주고받습니다.
 
-## Code Points
+다만 네 공간을 완전히 같은 것으로 취급하지는 않았습니다. 창고는 7×10, 인벤토리는 5×2, 장비창은 5×1이고, 장비창에는 투구·액세서리·갑옷·무기·신발처럼 지정된 부위에 맞는 아이템만 들어갈 수 있습니다. 이 차이는 각 Adapter가 검증하도록 두고, `UIItemMoveManager`는 어떤 구체 UI인지 모른 채 공통 이동 흐름만 처리하게 했습니다.
 
-- `IItemContainer`: 슬롯 조회, 비어 있음 확인, Set/Clear, Drop/Click, Refresh 계약
-- `InventoryContainerAdapter`: 인벤토리 HUD와 `Storage` 모델 연결
-- `StorageContainerAdapter`: 창고 패널과 `Storage` 모델 연결
-- `TargetInventoryContainerAdapter`: 루팅 창 연결
-- `EquipmentAdapter`: 장비 슬롯 타입 검증과 스탯 반영
-- `UIItemMoveManager.CanMove`: 이동 가능성 검증
-- `UIItemMoveManager.TryMove`: 병합/스왑/순수 이동 커밋
-- `UIItemMoveManager.TryAutoMove`: UI 상태별 자동 이동 우선순위
+```mermaid
+flowchart LR
+    Click[클릭 또는 드래그] --> Manager[UIItemMoveManager]
+    Manager --> Check[좌표·빈 슬롯·장비 부위 검증]
+    Check --> Adapter[각 Container Adapter]
+    Adapter --> Commit[이동 / 교체 / 수동 병합]
+    Commit --> Refresh[관련 UI 갱신]
+```
 
-## Portfolio Point
+## 퀵무브에 넣은 플레이 규칙
 
-새로운 창이 추가되어도 `IItemContainer` 규격만 맞추면 기존 이동, 병합, 스왑, 저장 흐름에 연결할 수 있었습니다. 특히 퀵 이동처럼 여러 저장소 사이의 규칙을 재사용하는 기능을 훨씬 단순하게 붙일 수 있었습니다. 다만 이동 정책이 `UIItemMoveManager`에 모인 부분은 남아 있어, 다음에는 Policy 단위로 더 분리해 결합도를 낮추고 싶습니다.
+우클릭은 단순히 빈칸을 찾는 기능이 아니라, 플레이 상황을 읽고 목적지를 정하는 동작이어야 했습니다.
+
+- 루팅창·창고·장비창에서 클릭한 아이템은 인벤토리로 보냅니다.
+- 인벤토리에서 클릭하면, 열려 있는 루팅창이 있으면 루팅창을 가장 먼저 선택합니다.
+- 루팅창이 닫혀 있고 창고가 열려 있으면 창고를 선택합니다.
+- 둘 다 닫혀 있고 장비 가능한 아이템이면 부위에 맞는 장비 슬롯을 찾아 장착하거나 기존 장비와 교체합니다.
+- 소비 아이템은 인벤토리에서 클릭했을 때 이동보다 사용을 먼저 시도합니다.
+
+이동 전에는 출발지·도착지 좌표, 빈 슬롯 여부, 장비 부위, 교체 가능 여부를 먼저 확인합니다. 실제 이동 중 출발지 비우기나 교환의 두 번째 기록이 실패하면, 이미 바뀐 목적지 슬롯을 되돌립니다.
+
+## 코드에서 확인할 수 있는 지점
+
+- `IItemContainer`: 모든 저장공간이 지키는 슬롯 조작 계약
+- `InventoryContainerAdapter`, `StorageContainerAdapter`, `TargetInventoryContainerAdapter`: 화면과 `Storage` 모델을 공통 규격으로 연결
+- `EquipmentAdapter`: 장비 부위 검증과 장비 스탯 반영
+- `UIItemMoveManager.CanMove`: 이동 전 검증
+- `UIItemMoveManager.TryMove`: 이동·교체·수동 스택 병합과 롤백
+- `UIItemMoveManager.TryAutoMove`: 열린 UI와 아이템 타입에 따른 퀵무브 목적지 결정
+
+## 남은 고민
+
+현재 퀵무브는 빈 슬롯을 찾아 이동하는 데 집중합니다. 수동 이동은 같은 아이템의 미완성 스택을 합칠 수 있지만, 퀵무브가 먼저 병합 가능한 스택을 찾지는 않습니다. 또 목적지 우선순위가 `UIItemMoveManager` 안에 모여 있습니다. 다음에는 이동 정책을 별도 객체로 분리하고, 병합·결과 아이템 추가까지 포함한 트랜잭션 경계를 더 분명하게 만들고 싶습니다.
