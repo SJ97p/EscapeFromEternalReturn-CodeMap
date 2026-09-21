@@ -15,6 +15,9 @@
         <h1>Escape From Eternal Return Code Map</h1>
       </div>
       <nav class="top-actions" aria-label="external links">
+        <button class="app-nav-button is-active" type="button" data-app-view="cases">사례로 보기</button>
+        <button class="app-nav-button" type="button" data-app-view="systems">전체 시스템</button>
+        <button class="app-nav-button" type="button" data-app-view="code">전체 코드</button>
         <a href="https://github.com/sj97p/EscapeFromEternalReturn-CodeMap#readme" target="_blank" rel="noreferrer">README</a>
         <a href="https://github.com/sj97p/EscapeFromEternalReturn-CodeMap/blob/main/docs/architecture.md" target="_blank" rel="noreferrer">Docs</a>
         <a href="https://github.com/sj97p/EscapeFromEternalReturn-CodeMap/blob/main/docs/class-diagram.md" target="_blank" rel="noreferrer">Class Diagram</a>
@@ -22,7 +25,19 @@
       </nav>
     </header>
 
-    <main class="app-shell" id="app-shell">
+    <section id="case-hub" class="case-hub" aria-label="사례별 탐색">
+      <div class="case-hero">
+        <p class="eyebrow">Case Studies</p>
+        <h2>전리품을 다음 탐험의 성장으로<br />이어 주기 위해 설계한 세 가지 규칙</h2>
+        <p>각 사례는 아이템을 얻고, 정리하고, 목표 장비로 바꾸고, 탐험을 이어 가는 흐름에서 생긴 실제 문제를 다룹니다. 판단과 코드 근거는 기존 시스템 그래프에서 계속 확인할 수 있습니다.</p>
+      </div>
+      <div id="case-cards" class="case-cards"></div>
+      <p class="case-hub-note">저장·로드와 씬·UI 생명주기는 세 사례를 받치는 기반 시스템입니다. 별도 사례로 부풀리지 않고 전체 시스템 탐색기에 남겼습니다.</p>
+    </section>
+
+    <section id="case-detail-view" class="case-detail-view" hidden></section>
+
+    <main class="app-shell" id="app-shell" hidden>
       <aside class="sidebar" aria-label="system tree">
         <div class="sidebar-head">
           <span class="label">Explorer</span>
@@ -117,5 +132,6 @@
 
     <script defer src="./app.js?v=20260802-ko"></script>
     <script defer src="./shield-features.js?v=20260801-fix1"></script>
+    <script defer src="./case-ui.js?v=20260921"></script>
   </body>
 </html>
