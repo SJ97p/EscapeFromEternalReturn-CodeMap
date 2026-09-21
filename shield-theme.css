@@ -83,10 +83,14 @@ body { background: var(--bg); color: var(--text); font-family: "Segoe UI", "Noto
 .case-decision { background: color-mix(in srgb, var(--accent) 7%, var(--panel)) !important; }
 .case-result { background: color-mix(in srgb, var(--accent-2) 6%, var(--panel)) !important; }
 .case-flow, .case-feedback { padding: 20px 22px; border: 1px solid var(--line); border-top: 0; background: var(--panel); }
+.case-implementation { padding: 20px 22px; border: 1px solid var(--line); border-top: 0; background: var(--panel); }
+.case-implementation h3 { margin-bottom: 9px; color: var(--accent); font-size: 14px; }
+.case-implementation p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.68; }
 .case-flow ol { display: flex; gap: 8px; flex-wrap: wrap; margin: 0; padding: 0; list-style: none; }
 .case-flow li { display: flex; align-items: center; gap: 7px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); color: var(--text); font-size: 13px; font-weight: 700; }
 .case-flow li span { color: var(--accent); font-size: 11px; }
 .case-feedback { border-radius: 0 0 10px 10px; }
+.case-result-panel { border-radius: 0; }
 .case-cta { display: inline-flex; align-items: center; gap: 8px; margin: 14px 0 24px; padding: 10px 12px; border: 1px solid var(--accent-2); border-radius: 7px; background: var(--accent-2); color: #fff; font-size: 14px; font-weight: 750; }
 .case-cta:hover { color: #fff; text-decoration: none; filter: brightness(.96); }
 
