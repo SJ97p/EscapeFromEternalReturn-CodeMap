@@ -11,7 +11,6 @@ const escapeCases = {
     implementation: "IItemContainer는 슬롯 조회·검증·이동의 공통 계약을 제공하고, 인벤토리·창고·장비·루팅 컨테이너는 Adapter로 각 규칙을 적용합니다. UIItemMoveManager는 이동 요청의 검증과 갱신 순서를 조율합니다.",
     result: "인벤토리·창고·루팅·장비창의 CRUD와 장비 교체를 하나의 이동 흐름으로 다룰 수 있게 했습니다. 퀵무브는 열린 루팅·창고와 장비 가능 여부를 확인한 뒤 목적지를 정하도록 구성했습니다.",
     feedback: "목적지 우선순위는 아직 UIItemMoveManager에 남아 있습니다. 다시 확장한다면 이동 목적지 선택을 Policy 객체로 분리하고, 스택 병합·실패 복구까지 포함한 트랜잭션 경계를 더 명확히 두겠습니다.",
-    doc: "docs/systems/item-container-transaction.md",
     cta: "CodeMap · 컨테이너 Adapter와 이동 검증 구조 보기"
   },
   "crafting-tree": {
@@ -26,7 +25,6 @@ const escapeCases = {
     implementation: "CraftTreeBuilder가 레시피와 하위 재료를 재귀적으로 완성한 뒤 CraftTreeNode를 반환하고, CraftTreeRenderer가 완성된 결과만 UI로 변환합니다. CraftingService는 별도로 재료·공간을 검증한 뒤 차감과 지급을 처리합니다.",
     result: "플레이어가 상위 목표와 최하위 재료, 현재 보유 수량을 같은 화면에서 확인하고 중간 재료를 직접 만들어 올라갈 수 있는 제작 흐름을 구성했습니다.",
     feedback: "현재는 조회마다 트리와 UI를 새로 만듭니다. 결과물을 넣을 공간이 없을 때 재료 차감까지 완전히 되돌리는 제작 트랜잭션도 부족해, 데이터가 커지면 캐싱과 명시적인 롤백 경계가 필요합니다.",
-    doc: "docs/systems/recursive-crafting-tree.md",
     cta: "CodeMap · 재귀 제작 트리와 제작 처리 구조 보기"
   },
   "zone-culling": {
@@ -41,7 +39,6 @@ const escapeCases = {
     implementation: "PlayerRegionTracker가 Region 변경 이벤트를 보내면 ZoneController가 RegionGraphSO의 인접 정보를 조회합니다. 현재 활성 집합과 다음 집합의 차이만 계산해 필요한 Zone에만 SetActive를 호출했습니다.",
     result: "동일 게임 씬 개발 환경에서 전체 Zone 활성 상태와 비교해 Update CPU 측정값이 약 4.75ms에서 2.75ms로 줄었습니다. 플레이 중에도 불필요한 Zone을 계속 활성화한 경우보다 끊김이 줄어드는 것을 확인했습니다.",
     feedback: "RegionGraph를 사람이 직접 설정해야 하는 수작업이 남아 있습니다. 다음에는 맵 데이터에서 인접 관계를 추출하거나 검증하는 편집 도구로 그래프 설정을 보완하겠습니다.",
-    doc: "docs/systems/zone-culling.md",
     cta: "CodeMap · RegionGraph와 Zone 활성 집합 계산 보기"
   }
 };
@@ -93,9 +90,15 @@ document.addEventListener("DOMContentLoaded", () => {
         <section class="case-implementation"><h3>구현과 근거</h3><p>${escapeHtml(item.implementation)}</p></section>
         <section class="case-feedback case-result-panel"><h3>확인한 결과</h3><p>${escapeHtml(item.result)}</p></section>
         <section class="case-feedback"><h3>자체 피드백</h3><p>${escapeHtml(item.feedback)}</p></section>
-        <a class="case-cta" href="${item.doc}" target="_blank" rel="noreferrer">${escapeHtml(item.cta)} <span aria-hidden="true">↗</span></a>
+        <button class="case-cta" type="button" data-case-node="${escapeHtml(item.nodeId)}">${escapeHtml(item.cta)} <span aria-hidden="true">↓</span></button>
       </div>`;
     detail.querySelector("[data-app-view='cases']").addEventListener("click", () => setAppView("cases"));
+    detail.querySelector("[data-case-node]").addEventListener("click", (event) => {
+      const nodeId = event.currentTarget.dataset.caseNode;
+      setAppView("systems", { updateUrl: false });
+      if (typeof window.selectNode === "function") window.selectNode(nodeId, { push: false });
+      document.getElementById("graph-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const setAppView = (view, { updateUrl = true } = {}) => {
